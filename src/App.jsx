@@ -1,72 +1,142 @@
-import React, { useState } from 'react';
-import { Camera, Wand2, Sparkles, RotateCcw, Shield, Layers, Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Camera, Wand2, Sparkles, RotateCcw, Shield } from 'lucide-react';
 import FramingSelector from './components/controls/FramingSelector';
 import CaptureViewport from './components/capture/CaptureViewport';
 import PromptPanel from './components/prompts/PromptPanel';
 import BeforeAfterSlider from './components/viewer/BeforeAfterSlider';
-import { STYLE_PRESETS } from './store/presets';
 import { synthesizePersona } from './api/generateApi';
+import { readApiKey, saveApiKey } from './api/apiKey';
 
 export default function App() {
   const [framingMode, setFramingMode] = useState('headshot');
   const [capturedImage, setCapturedImage] = useState(null);
-  const [prompt, setPrompt] = useState('Cyberpunk operative in neon rain alleyway, matte armor, volumetric fog, 85mm portrait');
+  const [prompt, setPrompt] = useState(
+    'Cyberpunk operative in neon rain alleyway, matte armor, volumetric fog, 85mm portrait'
+  );
+  const [negativePrompt, setNegativePrompt] = useState(
+    'blurry, deformed, oversaturated, low quality'
+  );
   const [selectedPreset, setSelectedPreset] = useState('cyberpunk');
   const [likeness, setLikeness] = useState(0.85);
+  const [apiKey, setApiKey] = useState(() => readApiKey());
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
+  const [identityUsed, setIdentityUsed] = useState(false);
+  const [error, setError] = useState(null);
+  const [retryUntil, setRetryUntil] = useState(0);
+  const [clock, setClock] = useState(() => Date.now());
+  const generatedRef = useRef(null);
 
   // Active step: 'scan' | 'style' | 'result'
   const [activeStep, setActiveStep] = useState('scan');
+
+  useEffect(() => {
+    if (!retryUntil) return undefined;
+    let timer = null;
+    const tick = () => {
+      const now = Date.now();
+      setClock(now);
+      if (now < retryUntil) timer = setTimeout(tick, 1000);
+    };
+    timer = setTimeout(tick, 1000);
+    return () => clearTimeout(timer);
+  }, [retryUntil]);
+
+  useEffect(
+    () => () => {
+      if (generatedRef.current) URL.revokeObjectURL(generatedRef.current);
+    },
+    []
+  );
+
+  const retryAfter = retryUntil > clock ? Math.ceil((retryUntil - clock) / 1000) : 0;
+
+  const replaceGeneratedImage = (url) => {
+    if (generatedRef.current && generatedRef.current !== url) {
+      URL.revokeObjectURL(generatedRef.current);
+    }
+    generatedRef.current = url?.startsWith('blob:') ? url : null;
+    setGeneratedImage(url);
+  };
+
+  const clearCooldown = () => {
+    setRetryUntil(0);
+    setClock(Date.now());
+  };
 
   const handleSelectPreset = (preset) => {
     setSelectedPreset(preset.id);
     if (preset.prompt) {
       setPrompt(preset.prompt);
     }
+    if (typeof preset.negativePrompt === 'string') {
+      setNegativePrompt(preset.negativePrompt);
+    }
   };
 
   const handleCapture = (img) => {
     setCapturedImage(img);
+    replaceGeneratedImage(null);
+    setIdentityUsed(false);
+    setError(null);
+    clearCooldown();
     setActiveStep('style');
   };
 
   const handleClearCapture = () => {
     setCapturedImage(null);
-    setGeneratedImage(null);
+    replaceGeneratedImage(null);
+    setIdentityUsed(false);
+    setError(null);
+    clearCooldown();
     setActiveStep('scan');
   };
 
-  const handleUseSample = () => {
-    // Quick demo face
-    setCapturedImage('/sample-persona.png');
-    setActiveStep('style');
+  const handleApiKeyChange = (key) => {
+    const stored = saveApiKey(key);
+    setApiKey(stored);
+    setError(null);
+    clearCooldown();
   };
 
   const handleGenerate = async () => {
-    if (!capturedImage) return;
+    if (!capturedImage || isGenerating) return;
+    if (!prompt.trim()) {
+      setError('Describe the persona you want before synthesizing.');
+      return;
+    }
+    if (retryAfter > 0) return;
+
     setIsGenerating(true);
+    setError(null);
 
     try {
-      const generatedUrl = await synthesizePersona({
+      const result = await synthesizePersona({
         prompt,
         framingMode,
         likeness,
         capturedImage,
+        negativePrompt,
+        apiKey,
+        styleId: selectedPreset,
       });
-      setGeneratedImage(generatedUrl);
+      replaceGeneratedImage(result.url);
+      setIdentityUsed(result.identityUsed);
+      clearCooldown();
       setActiveStep('result');
     } catch (err) {
       console.error('Synthesis error:', err);
-      setGeneratedImage('/sample-persona.png');
-      setActiveStep('result');
+      setError(err instanceof Error ? err.message : 'Synthesis failed. Try again.');
+      if (err?.retryAfter) {
+        setClock(Date.now());
+        setRetryUntil(Date.now() + err.retryAfter * 1000);
+      }
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleReset = () => {
-    setGeneratedImage(null);
     setActiveStep('style');
   };
 
@@ -78,9 +148,7 @@ export default function App() {
           <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center text-black font-black text-xs shadow-md">
             M
           </div>
-          <span className="font-bold text-sm tracking-tight text-white">
-            MorphLens
-          </span>
+          <span className="font-bold text-sm tracking-tight text-white">MorphLens</span>
           <span className="text-[9px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded-full">
             Studio
           </span>
@@ -89,8 +157,8 @@ export default function App() {
         {/* Header Right Status */}
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 bg-zinc-900/80 border border-zinc-800/80 px-2 py-0.5 rounded-full">
-            <Shield size={11} className="text-emerald-400" />
-            <span className="hidden xs:inline">On-Device</span> Privacy
+            <Shield size={11} className={apiKey ? 'text-emerald-400' : 'text-amber-400'} />
+            <span className="hidden xs:inline">{apiKey ? 'Identity' : 'Prompt'}</span> Mode
           </span>
         </div>
       </header>
@@ -98,7 +166,6 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 w-full max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-col justify-center items-center overflow-hidden">
         <div className="w-full h-full max-w-lg lg:max-w-none grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 items-center justify-items-center overflow-hidden">
-          
           {/* CAMERA / VIEWFINDER / RESULT STAGE */}
           <div
             className={`w-full min-w-0 h-full lg:col-span-7 flex flex-col items-center justify-center overflow-hidden ${
@@ -109,6 +176,7 @@ export default function App() {
               <BeforeAfterSlider
                 originalImage={capturedImage}
                 generatedImage={generatedImage}
+                identityUsed={identityUsed}
                 onReset={handleReset}
               />
             ) : (
@@ -119,7 +187,6 @@ export default function App() {
                   capturedImage={capturedImage}
                   onCapture={handleCapture}
                   onClearCapture={handleClearCapture}
-                  onUseSample={handleUseSample}
                 />
 
                 {/* Framing Mode Selector */}
@@ -200,14 +267,18 @@ export default function App() {
                 onSelectPreset={handleSelectPreset}
                 likeness={likeness}
                 onLikenessChange={setLikeness}
-                framingMode={framingMode}
+                negativePrompt={negativePrompt}
+                onNegativePromptChange={setNegativePrompt}
                 isGenerating={isGenerating}
                 onGenerate={handleGenerate}
                 hasCapturedSubject={Boolean(capturedImage)}
+                apiKey={apiKey}
+                onApiKeyChange={handleApiKeyChange}
+                error={error}
+                retryAfter={retryAfter}
               />
             </div>
           </div>
-
         </div>
       </main>
 
@@ -217,7 +288,9 @@ export default function App() {
           type="button"
           onClick={() => setActiveStep('scan')}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-            activeStep === 'scan' ? 'text-amber-400 font-bold scale-105' : 'text-zinc-500 hover:text-zinc-300'
+            activeStep === 'scan'
+              ? 'text-amber-400 font-bold scale-105'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           <Camera size={19} />
@@ -228,7 +301,9 @@ export default function App() {
           type="button"
           onClick={() => setActiveStep('style')}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-            activeStep === 'style' ? 'text-amber-400 font-bold scale-105' : 'text-zinc-500 hover:text-zinc-300'
+            activeStep === 'style'
+              ? 'text-amber-400 font-bold scale-105'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           <Wand2 size={19} />
@@ -243,8 +318,8 @@ export default function App() {
             activeStep === 'result'
               ? 'text-amber-400 font-bold scale-105'
               : generatedImage
-              ? 'text-zinc-500 hover:text-zinc-300'
-              : 'text-zinc-800 cursor-not-allowed opacity-40'
+                ? 'text-zinc-500 hover:text-zinc-300'
+                : 'text-zinc-800 cursor-not-allowed opacity-40'
           }`}
         >
           <Sparkles size={19} />

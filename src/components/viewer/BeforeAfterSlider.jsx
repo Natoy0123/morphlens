@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Download, RotateCcw, Sparkles } from 'lucide-react';
+import { Download, RotateCcw, Sparkles, Fingerprint } from 'lucide-react';
 
 export default function BeforeAfterSlider({
   originalImage,
   generatedImage,
+  identityUsed = false,
   onReset,
 }) {
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -29,17 +30,39 @@ export default function BeforeAfterSlider({
     updatePosition(e.clientX);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!generatedImage) return;
-    const a = document.createElement('a');
-    a.href = generatedImage;
-    a.download = `morphlens-${Date.now()}.png`;
-    a.click();
+    const filename = `morphlens-${Date.now()}.png`;
+
+    try {
+      let href = generatedImage;
+      let revoke = false;
+      if (!generatedImage.startsWith('blob:') && !generatedImage.startsWith('data:')) {
+        const response = await fetch(generatedImage);
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        href = URL.createObjectURL(blob);
+        revoke = true;
+      }
+
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      if (revoke) {
+        setTimeout(() => URL.revokeObjectURL(href), 1000);
+      }
+    } catch {
+      window.open(generatedImage, '_blank', 'noopener');
+    }
   };
 
   return (
     <div className="w-full flex-1 flex flex-col justify-between gap-3.5 bg-black select-none">
-      {/* Slider Viewport with touch-none to prevent mobile page scrolling while dragging */}
+      {/* Slider Viewport */}
       <div
         ref={containerRef}
         onMouseDown={() => setIsDragging(true)}
@@ -62,20 +85,22 @@ export default function BeforeAfterSlider({
         />
 
         {/* Original Scanned Image (Clipped) */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`,
-          }}
-        >
-          <img
-            src={originalImage}
-            alt="Original Subject"
-            className="w-full h-full object-contain"
-          />
-        </div>
+        {originalImage && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`,
+            }}
+          >
+            <img
+              src={originalImage}
+              alt="Original Subject"
+              className="w-full h-full object-contain"
+            />
+          </div>
+        )}
 
-        {/* Divider Line & Minimal Handle */}
+        {/* Divider Line & Handle */}
         <div
           className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)] pointer-events-none"
           style={{ left: `${sliderPosition}%` }}
@@ -85,13 +110,23 @@ export default function BeforeAfterSlider({
           </div>
         </div>
 
-        {/* High-End Camera Labels */}
+        {/* Camera Labels */}
         <div className="absolute top-4 left-4 bg-black/75 border border-zinc-700 text-zinc-200 text-xs font-mono font-medium px-3 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
           INPUT SCAN
         </div>
-        <div className="absolute top-4 right-4 bg-black/75 border border-amber-500/40 text-amber-300 text-xs font-mono font-medium px-3 py-1.5 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1.5">
-          <Sparkles size={12} className="text-amber-400" />
-          SYNTHESIZED
+        <div
+          className={`absolute top-4 right-4 bg-black/75 border text-xs font-mono font-medium px-3 py-1.5 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1.5 ${
+            identityUsed
+              ? 'border-emerald-500/40 text-emerald-300'
+              : 'border-amber-500/40 text-amber-300'
+          }`}
+        >
+          {identityUsed ? (
+            <Fingerprint size={12} className="text-emerald-400" />
+          ) : (
+            <Sparkles size={12} className="text-amber-400" />
+          )}
+          {identityUsed ? 'PHOTO CONDITIONED' : 'PROMPT-ONLY RENDER'}
         </div>
       </div>
 
@@ -103,7 +138,7 @@ export default function BeforeAfterSlider({
           className="flex-1 py-3.5 sm:py-4 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm tracking-wide flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md"
         >
           <Download size={15} />
-          DOWNLOAD 4K PORTRAIT
+          DOWNLOAD PORTRAIT
         </button>
 
         <button

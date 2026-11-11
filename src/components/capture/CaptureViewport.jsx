@@ -1,19 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Upload, RotateCcw, SwitchCamera, Focus, Sparkles, X, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Camera, Upload, RotateCcw, SwitchCamera, Focus, X, AlertCircle, ImageIcon } from 'lucide-react';
 
 export default function CaptureViewport({
   framingMode,
   capturedImage,
   onCapture,
   onClearCapture,
-  onUseSample,
 }) {
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
+  const streamRef = useRef(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [facingMode, setFacingMode] = useState('user');
-  const [stream, setStream] = useState(null);
   const [isShutterFlashing, setIsShutterFlashing] = useState(false);
 
   const startCamera = async (overrideFacing) => {
@@ -29,7 +28,7 @@ export default function CaptureViewport({
         },
         audio: false,
       });
-      setStream(mediaStream);
+      streamRef.current = mediaStream;
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         await videoRef.current.play();
@@ -42,9 +41,9 @@ export default function CaptureViewport({
   };
 
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -61,8 +60,20 @@ export default function CaptureViewport({
   };
 
   useEffect(() => {
+    if (!isCameraActive) return;
+    const video = videoRef.current;
+    const mediaStream = streamRef.current;
+    if (!video || !mediaStream) return;
+    video.srcObject = mediaStream;
+    video.play().catch(() => {});
+  }, [isCameraActive]);
+
+  useEffect(() => {
     return () => {
-      stopCamera();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
     };
   }, []);
 
@@ -96,6 +107,10 @@ export default function CaptureViewport({
     canvas.width = cropWidth;
     canvas.height = cropHeight;
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setCameraError('Could not prepare the photo. Try uploading one instead.');
+      return;
+    }
 
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
@@ -283,25 +298,14 @@ export default function CaptureViewport({
                   Open Camera
                 </button>
 
-                <div className="flex gap-2 w-full">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
-                  >
-                    <Upload size={13} />
-                    Upload Photo
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={onUseSample}
-                    className="py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-amber-400 font-semibold text-xs flex items-center justify-center gap-1 transition-all active:scale-98"
-                  >
-                    <Sparkles size={12} />
-                    Demo Face
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                >
+                  <Upload size={13} />
+                  Upload Photo
+                </button>
               </div>
             </div>
           </div>

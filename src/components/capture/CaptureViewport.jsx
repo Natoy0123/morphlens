@@ -143,6 +143,13 @@ export default function CaptureViewport({
 
   return (
     <div className="relative w-full flex-1 flex flex-col justify-between overflow-hidden bg-black select-none">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
       {/* Viewfinder Main Card */}
       <div className="relative w-full aspect-[3/4] sm:aspect-[4/5] max-h-[52dvh] sm:max-h-[500px] bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-800/90 rounded-3xl mx-auto shadow-2xl">
         {/* Shutter Flash Animation */}
@@ -301,40 +308,30 @@ export default function CaptureViewport({
         )}
       </div>
 
-      {/* Shutter Bar (Thumb Deck) */}
-      <div className="w-full pt-2.5 pb-1 px-4 flex items-center justify-between max-w-[320px] mx-auto">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="w-12 h-12 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md"
-          title="Upload Photo"
-        >
-          <ImageIcon size={18} />
-          <span className="text-[9px] font-semibold mt-0.5 text-zinc-400">Photo</span>
-        </button>
+      {/* Shutter Bar (Thumb Deck - Only visible when camera stream is actively running) */}
+      {isCameraActive && (
+        <div className="w-full pt-2.5 pb-1 px-4 flex items-center justify-between max-w-[320px] mx-auto animate-in fade-in duration-200">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-12 h-12 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md"
+            title="Upload Photo"
+          >
+            <ImageIcon size={18} />
+            <span className="text-[9px] font-semibold mt-0.5 text-zinc-400">Photo</span>
+          </button>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
+          {/* Shutter Button */}
+          <button
+            type="button"
+            onClick={takeSnapshot}
+            className="relative w-16 h-16 rounded-full border-2 border-white/80 p-1 flex items-center justify-center transition-all active:scale-90 hover:border-white shadow-2xl"
+            aria-label="Capture Photo"
+          >
+            <div className="w-full h-full rounded-full bg-white active:bg-zinc-300 transition-colors flex items-center justify-center" />
+          </button>
 
-        {/* Shutter Button */}
-        <button
-          type="button"
-          onClick={isCameraActive ? takeSnapshot : () => startCamera()}
-          className="relative w-16 h-16 rounded-full border-2 border-white/80 p-1 flex items-center justify-center transition-all active:scale-90 hover:border-white shadow-2xl"
-          aria-label="Capture Photo"
-        >
-          <div className="w-full h-full rounded-full bg-white active:bg-zinc-300 transition-colors flex items-center justify-center">
-            {!isCameraActive && <Camera size={20} className="text-black" />}
-          </div>
-        </button>
-
-        {/* Camera Flip or Close Button */}
-        {isCameraActive ? (
+          {/* Camera Close Button */}
           <button
             type="button"
             onClick={stopCamera}
@@ -344,18 +341,8 @@ export default function CaptureViewport({
             <X size={18} />
             <span className="text-[9px] font-semibold mt-0.5 text-zinc-400">Close</span>
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={toggleFacingMode}
-            className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shadow-md"
-            title="Switch Lens"
-          >
-            <SwitchCamera size={18} />
-            <span className="text-[9px] font-semibold mt-0.5 text-zinc-400">Flip</span>
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

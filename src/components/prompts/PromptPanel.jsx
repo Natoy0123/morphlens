@@ -40,19 +40,19 @@ export default function PromptPanel({
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6 bg-zinc-950 border border-zinc-800/80 rounded-3xl select-none">
-      {/* Prompt-First Direction Input (text-base prevents iOS auto-zoom) */}
+    <div className="flex flex-col gap-3 p-3.5 sm:p-5 bg-zinc-950 border border-zinc-800/80 rounded-2xl select-none">
+      {/* Prompt-First Direction Input */}
       <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <label className="text-xs sm:text-sm font-mono tracking-wider uppercase text-zinc-200 flex items-center gap-1.5 font-bold">
-            <Wand2 size={14} className="text-amber-400" />
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <label className="text-[11px] sm:text-xs font-mono tracking-wider uppercase text-zinc-300 flex items-center gap-1.5 font-bold">
+            <Wand2 size={13} className="text-amber-400" />
             Persona Creative Direction
           </label>
-          <span className="text-xs text-zinc-500 font-mono">PROMPT-DRIVEN</span>
+          <span className="text-[10px] text-zinc-500 font-mono">PROMPT-DRIVEN</span>
         </div>
 
         <textarea
-          rows={3}
+          rows={2}
           value={prompt}
           onChange={(e) => {
             onPromptChange(e.target.value);
@@ -61,20 +61,20 @@ export default function PromptPanel({
             }
           }}
           placeholder="Describe your subject, attire, lighting, and world (e.g. Victorian detective in foggy London street, sharp tweed coat, 85mm portrait)..."
-          className="w-full px-4 py-3 bg-zinc-900/90 border border-zinc-800 focus:border-zinc-500 rounded-xl text-sm sm:text-base text-zinc-100 placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed font-sans"
+          className="w-full px-3.5 py-2.5 bg-zinc-900/90 border border-zinc-800 focus:border-zinc-500 rounded-xl text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed font-sans"
         />
       </div>
 
       {/* Quick Inspiration Presets */}
       <div>
-        <div className="flex items-center justify-between mb-1.5 px-1">
-          <span className="text-xs font-mono tracking-wider uppercase text-zinc-400 font-medium">
+        <div className="flex items-center justify-between mb-1 px-1">
+          <span className="text-[11px] font-mono tracking-wider uppercase text-zinc-400 font-medium">
             Quick Inceptions / Presets
           </span>
-          <span className="text-xs text-zinc-500">Tap to populate</span>
+          <span className="text-[10px] text-zinc-500">Tap to populate</span>
         </div>
 
-        <div className="flex overflow-x-auto no-scrollbar gap-2 py-1 -mx-1 px-1">
+        <div className="flex overflow-x-auto no-scrollbar gap-1.5 py-1 -mx-1 px-1">
           {STYLE_PRESETS.map((preset) => {
             const isSelected = selectedPreset === preset.id;
             return (
@@ -95,16 +95,16 @@ export default function PromptPanel({
         </div>
       </div>
 
-      {/* Modular Aesthetic Modifiers */}
+      {/* Modular Aesthetic Modifiers (Single-Row Horizontal Scroll) */}
       <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-mono tracking-wider uppercase text-zinc-400 font-medium">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <span className="text-[11px] font-mono tracking-wider uppercase text-zinc-400 font-medium">
             Style & Lens Modifiers
           </span>
-          <span className="text-xs text-zinc-500">Tap to toggle</span>
+          <span className="text-[11px] text-zinc-500">Tap to toggle</span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex overflow-x-auto no-scrollbar gap-1.5 py-1 -mx-1 px-1">
           {STYLE_TAGS.map((tag) => {
             const isApplied = prompt.toLowerCase().includes(tag.toLowerCase());
             return (
@@ -112,7 +112,7 @@ export default function PromptPanel({
                 key={tag}
                 type="button"
                 onClick={() => handleToggleTag(tag)}
-                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium border transition-all active:scale-95 ${
+                className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium border transition-all active:scale-95 flex-shrink-0 ${
                   isApplied
                     ? 'border-amber-400/80 bg-amber-400/15 text-amber-300 font-semibold'
                     : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'

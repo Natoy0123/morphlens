@@ -71,33 +71,33 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-black text-zinc-100 flex flex-col justify-between antialiased selection:bg-zinc-800 selection:text-white">
+    <div className="h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-hidden bg-black text-zinc-100 flex flex-col justify-between antialiased selection:bg-zinc-800 selection:text-white">
       {/* Top Header */}
-      <header className="flex-shrink-0 h-13 px-4 sm:px-6 border-b border-zinc-900 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-between w-full">
+      <header className="flex-shrink-0 h-12 px-4 sm:px-6 border-b border-zinc-900 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-black font-black text-xs shadow-md">
+          <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center text-black font-black text-xs shadow-md">
             M
           </div>
-          <span className="font-bold text-base tracking-tight text-white">
+          <span className="font-bold text-sm tracking-tight text-white">
             MorphLens
           </span>
-          <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full ml-1">
+          <span className="text-[9px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded-full">
             Studio
           </span>
         </div>
 
         {/* Header Right Status */}
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 bg-zinc-900/80 border border-zinc-800/80 px-2.5 py-1 rounded-full">
-            <Shield size={12} className="text-emerald-400" />
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 bg-zinc-900/80 border border-zinc-800/80 px-2 py-0.5 rounded-full">
+            <Shield size={11} className="text-emerald-400" />
             <span className="hidden xs:inline">On-Device</span> Privacy
           </span>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 w-full max-w-6xl mx-auto p-2 sm:p-4 lg:p-6 flex flex-col justify-center overflow-x-hidden">
-        <div className="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 items-center overflow-x-hidden">
+      <main className="flex-1 min-w-0 w-full max-w-6xl mx-auto px-2 py-1 sm:p-4 lg:p-6 flex flex-col justify-center overflow-hidden">
+        <div className="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-8 items-center overflow-hidden">
           
           {/* CAMERA / VIEWFINDER / RESULT STAGE */}
           <div

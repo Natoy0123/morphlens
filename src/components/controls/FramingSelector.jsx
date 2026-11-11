@@ -1,37 +1,37 @@
 import React from 'react';
+import { User, UserCheck, Accessibility, Sparkles } from 'lucide-react';
 
 const MODES = [
-  { id: 'headshot', label: 'HEADSHOT', ratio: '1:1' },
-  { id: 'half_body', label: 'HALF BODY', ratio: '4:5' },
-  { id: 'full_body', label: 'FULL BODY', ratio: '9:16' },
-  { id: 'auto', label: 'AUTO', ratio: '3:4' },
+  { id: 'headshot', label: 'Headshot', ratio: '1:1', icon: User },
+  { id: 'half_body', label: 'Half Body', ratio: '4:5', icon: UserCheck },
+  { id: 'full_body', label: 'Full Body', ratio: '9:16', icon: Accessibility },
+  { id: 'auto', label: 'Auto', ratio: '3:4', icon: Sparkles },
 ];
 
 export default function FramingSelector({ currentMode, onSelectMode }) {
   return (
-    <div className="w-full flex justify-center select-none py-1.5">
-      <div className="flex items-center justify-center gap-4 sm:gap-7 px-3 max-w-full">
+    <div className="w-full flex items-center justify-center select-none py-1">
+      {/* Sleek Segmented Pill Control */}
+      <div className="flex items-center gap-1 p-1 bg-zinc-900/90 border border-zinc-800/80 rounded-2xl max-w-full overflow-x-auto no-scrollbar shadow-inner">
         {MODES.map((mode) => {
+          const Icon = mode.icon;
           const isActive = currentMode === mode.id;
           return (
             <button
               key={mode.id}
               type="button"
               onClick={() => onSelectMode(mode.id)}
-              className="group relative flex flex-col items-center py-1.5 px-1 transition-all flex-shrink-0 min-h-[40px] justify-center"
+              className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all flex-shrink-0 active:scale-95 ${
+                isActive
+                  ? 'bg-zinc-800 text-white shadow-md border border-zinc-700/60'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
             >
-              <span
-                className={`text-xs sm:text-sm font-bold tracking-wider transition-all ${
-                  isActive
-                    ? 'text-amber-400 scale-105'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                {mode.label}
+              <Icon size={13} className={isActive ? 'text-amber-400' : 'text-zinc-400'} />
+              <span>{mode.label}</span>
+              <span className={`text-[10px] font-normal ${isActive ? 'text-zinc-400' : 'text-zinc-400'}`}>
+                {mode.ratio}
               </span>
-              {isActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
-              )}
             </button>
           );
         })}

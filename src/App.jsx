@@ -71,10 +71,10 @@ export default function App() {
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
           <span className="font-bold text-xs sm:text-sm tracking-tight text-white uppercase font-mono truncate">
-            PersonaCraft
+            MorphLens
           </span>
           <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest pl-1 border-l border-zinc-800 hidden xs:inline flex-shrink-0">
-            OPTICAL AI
+            AI STUDIO
           </span>
         </div>
 

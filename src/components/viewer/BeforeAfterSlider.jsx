@@ -33,7 +33,7 @@ export default function BeforeAfterSlider({
     if (!generatedImage) return;
     const a = document.createElement('a');
     a.href = generatedImage;
-    a.download = `persona-${Date.now()}.png`;
+    a.download = `morphlens-${Date.now()}.png`;
     a.click();
   };
 

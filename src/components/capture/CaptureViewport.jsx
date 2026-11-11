@@ -36,7 +36,7 @@ export default function CaptureViewport({
       setIsCameraActive(true);
     } catch (err) {
       console.error('Camera error:', err);
-      setCameraError('Camera access required. Please grant permission or upload a photo.');
+      setCameraError('Camera access unavailable. Grant browser permission or select an image.');
     }
   };
 
@@ -68,7 +68,6 @@ export default function CaptureViewport({
   const takeSnapshot = () => {
     if (!videoRef.current) return;
     
-    // Shutter flash effect
     setIsShutterFlashing(true);
     setTimeout(() => setIsShutterFlashing(false), 200);
 
@@ -76,8 +75,7 @@ export default function CaptureViewport({
     const vWidth = video.videoWidth || 1280;
     const vHeight = video.videoHeight || 720;
 
-    // Calculate aspect ratio crop based on active framing mode
-    let targetRatio = 1; // headshot default 1:1
+    let targetRatio = 1;
     if (framingMode === 'half_body') targetRatio = 4 / 5;
     else if (framingMode === 'full_body') targetRatio = 9 / 16;
     else if (framingMode === 'auto') targetRatio = 3 / 4;
@@ -98,7 +96,6 @@ export default function CaptureViewport({
     canvas.height = cropHeight;
     const ctx = canvas.getContext('2d');
 
-    // Handle mirror for front camera
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
@@ -144,10 +141,9 @@ export default function CaptureViewport({
   };
 
   return (
-    <div className="relative w-full flex-1 flex flex-col justify-between overflow-hidden bg-black select-none">
+    <div className="relative w-full min-w-0 max-w-full flex-1 flex flex-col justify-between overflow-hidden bg-black select-none">
       {/* Viewfinder Main Stage */}
-      <div className="relative w-full flex-1 min-h-[340px] sm:min-h-[420px] bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-800/60 rounded-3xl">
-        {/* Shutter White Flash Animation */}
+      <div className="relative w-full aspect-[3/4] sm:aspect-[4/5] max-h-[50dvh] sm:max-h-[500px] bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-800/80 rounded-3xl mx-auto shadow-2xl">
         {isShutterFlashing && (
           <div className="absolute inset-0 bg-white z-50 pointer-events-none animate-out fade-out duration-200" />
         )}
@@ -162,17 +158,17 @@ export default function CaptureViewport({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
-            <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/60 border border-zinc-800 text-zinc-200 px-3 py-1 rounded-full text-[11px] font-mono tracking-wide backdrop-blur-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/70 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-full text-xs font-mono tracking-wide backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               SUBJECT ACQUIRED
             </div>
 
             <button
               type="button"
               onClick={onClearCapture}
-              className="absolute top-4 right-4 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-200 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+              className="absolute top-4 right-4 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
             >
-              <RotateCcw size={12} />
+              <RotateCcw size={13} />
               Retake
             </button>
           </div>
@@ -188,11 +184,11 @@ export default function CaptureViewport({
             />
 
             {/* Precision Optical Viewfinder Markings */}
-            <div className="absolute inset-5 pointer-events-none border border-white/10 rounded-2xl">
-              <div className="absolute -top-0.5 -left-0.5 w-3 h-3 border-t-2 border-l-2 border-white/60" />
-              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 border-t-2 border-r-2 border-white/60" />
-              <div className="absolute -bottom-0.5 -left-0.5 w-3 h-3 border-b-2 border-l-2 border-white/60" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 border-b-2 border-r-2 border-white/60" />
+            <div className="absolute inset-4 pointer-events-none border border-white/10 rounded-2xl">
+              <div className="absolute -top-0.5 -left-0.5 w-3.5 h-3.5 border-t-2 border-l-2 border-white/70" />
+              <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 border-t-2 border-r-2 border-white/70" />
+              <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 border-b-2 border-l-2 border-white/70" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-b-2 border-r-2 border-white/70" />
 
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none opacity-40">
                 <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
@@ -203,67 +199,65 @@ export default function CaptureViewport({
             {/* Dynamic Framing Guides */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
               {framingMode === 'headshot' && (
-                <div className="w-[52%] aspect-[1/1] max-w-[220px] border border-white/40 rounded-[50%] shadow-[0_0_30px_rgba(255,255,255,0.08)]" />
+                <div className="w-[52%] aspect-[1/1] max-w-[220px] border border-white/50 rounded-[50%] shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
               )}
               {framingMode === 'half_body' && (
-                <div className="w-[68%] aspect-[4/5] max-w-[270px] border border-white/40 rounded-t-[70px] rounded-b-xl shadow-[0_0_30px_rgba(255,255,255,0.08)]" />
+                <div className="w-[66%] aspect-[4/5] max-w-[270px] border border-white/50 rounded-t-[70px] rounded-b-xl shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
               )}
               {framingMode === 'full_body' && (
-                <div className="w-[48%] aspect-[9/16] max-w-[210px] border border-white/40 rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.08)]" />
+                <div className="w-[46%] aspect-[9/16] max-w-[210px] border border-white/50 rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
               )}
               {framingMode === 'auto' && (
-                <div className="w-[62%] aspect-[3/4] max-w-[250px] border border-dashed border-white/30 rounded-2xl" />
+                <div className="w-[60%] aspect-[3/4] max-w-[250px] border border-dashed border-white/40 rounded-2xl" />
               )}
             </div>
 
-            {/* Viewfinder Top HUD with Close Camera Button */}
-            <div className="absolute top-3 inset-x-4 flex items-center justify-between pointer-events-auto z-20">
-              {/* CLOSE CAMERA BUTTON */}
+            {/* Viewfinder Top HUD */}
+            <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto z-20">
               <button
                 type="button"
                 onClick={stopCamera}
-                className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/20 flex items-center justify-center text-zinc-200 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 border border-white/30 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Close Camera"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-mono text-zinc-300">
-                <Focus size={11} className="text-amber-400" />
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-xs font-mono text-zinc-200">
+                <Focus size={12} className="text-amber-400" />
                 <span>AF ACTIVE</span>
               </div>
 
-              {/* FLIP LENS BUTTON */}
               <button
                 type="button"
                 onClick={toggleFacingMode}
-                className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/20 flex items-center justify-center text-zinc-200 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 border border-white/30 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Flip Camera"
               >
-                <SwitchCamera size={14} />
+                <SwitchCamera size={15} />
               </button>
             </div>
           </div>
         ) : (
           /* High-End Studio Standby View */
-          <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center">
+          <div className="relative w-full h-full flex flex-col items-center justify-center p-5 sm:p-6 text-center">
             <div className="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col items-center max-w-xs">
-              <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 mb-4 shadow-2xl">
-                <Focus size={28} className="text-zinc-300 stroke-[1.5]" />
+            <div className="relative z-10 flex flex-col items-center max-w-[280px] sm:max-w-xs">
+              <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 mb-3.5 shadow-xl">
+                <Focus size={28} className="stroke-[1.5]" />
               </div>
 
-              <h3 className="text-sm font-semibold tracking-tight text-zinc-100 mb-1">
+              <h3 className="text-sm sm:text-base font-semibold tracking-tight text-zinc-100 mb-1.5">
                 Optical Identity Scanner
               </h3>
-              <p className="text-[11px] text-zinc-400 mb-6 leading-relaxed">
+              <p className="text-xs text-zinc-400 mb-5 sm:mb-6 leading-relaxed">
                 Position face or body within the viewfinder, or select an existing portrait.
               </p>
 
               {cameraError && (
-                <div className="flex items-center gap-2 p-2.5 mb-4 bg-red-950/40 border border-red-800/40 text-red-300 rounded-xl text-[11px] text-left">
-                  <AlertCircle size={13} className="flex-shrink-0 text-red-400" />
+                <div className="flex items-center gap-2 p-2.5 mb-3.5 bg-red-950/40 border border-red-800/40 text-red-300 rounded-xl text-xs text-left">
+                  <AlertCircle size={14} className="flex-shrink-0 text-red-400" />
                   <span>{cameraError}</span>
                 </div>
               )}
@@ -271,9 +265,9 @@ export default function CaptureViewport({
               <button
                 type="button"
                 onClick={() => startCamera()}
-                className="w-full py-3 px-5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs flex items-center justify-center gap-2 shadow-xl shadow-white/5 transition-all active:scale-98"
+                className="w-full py-3 px-5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-98"
               >
-                <Camera size={14} />
+                <Camera size={16} />
                 Activate Lens
               </button>
             </div>
@@ -282,16 +276,16 @@ export default function CaptureViewport({
       </div>
 
       {/* Camera Shutter Deck */}
-      <div className="w-full pt-3 pb-2 px-6 flex items-center justify-between">
+      <div className="w-full pt-2.5 pb-1 px-4 sm:px-6 flex items-center justify-between max-w-[340px] sm:max-w-sm mx-auto">
         {/* Left: Upload Photo Button */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="w-11 h-11 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-200 transition-all active:scale-95 shadow-md"
+          className="w-12 h-12 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md flex-shrink-0"
           title="Upload Photo"
         >
-          <ImageIcon size={16} />
-          <span className="text-[8px] font-mono tracking-wider mt-0.5 text-zinc-400">IMPORT</span>
+          <ImageIcon size={17} />
+          <span className="text-[9px] font-mono tracking-wider mt-0.5 text-zinc-400 font-bold">IMPORT</span>
         </button>
 
         <input
@@ -306,7 +300,7 @@ export default function CaptureViewport({
         <button
           type="button"
           onClick={isCameraActive ? takeSnapshot : () => startCamera()}
-          className="relative w-18 h-18 rounded-full border-2 border-white/80 p-1 flex items-center justify-center transition-all active:scale-90 hover:border-white shadow-2xl"
+          className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-white/80 p-1 flex items-center justify-center transition-all active:scale-90 hover:border-white shadow-xl flex-shrink-0"
           aria-label="Capture Photo"
         >
           <div className="w-full h-full rounded-full bg-white active:bg-zinc-300 transition-colors flex items-center justify-center">
@@ -319,21 +313,21 @@ export default function CaptureViewport({
           <button
             type="button"
             onClick={stopCamera}
-            className="w-11 h-11 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md"
+            className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md flex-shrink-0"
             title="Close Camera"
           >
-            <X size={16} />
-            <span className="text-[8px] font-mono tracking-wider mt-0.5 text-zinc-400">CLOSE</span>
+            <X size={17} />
+            <span className="text-[9px] font-mono tracking-wider mt-0.5 text-zinc-400 font-bold">CLOSE</span>
           </button>
         ) : (
           <button
             type="button"
             onClick={toggleFacingMode}
-            className="w-11 h-11 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-95 shadow-md"
+            className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md flex-shrink-0"
             title="Switch Lens"
           >
-            <SwitchCamera size={16} />
-            <span className="text-[8px] font-mono tracking-wider mt-0.5 text-zinc-400">FLIP</span>
+            <SwitchCamera size={17} />
+            <span className="text-[9px] font-mono tracking-wider mt-0.5 text-zinc-400 font-bold">FLIP</span>
           </button>
         )}
       </div>

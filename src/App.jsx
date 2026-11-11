@@ -96,12 +96,12 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 w-full max-w-6xl mx-auto px-2 py-1 sm:p-4 lg:p-6 flex flex-col justify-center overflow-hidden">
-        <div className="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-8 items-center overflow-hidden">
+      <main className="flex-1 min-w-0 w-full max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-col justify-center items-center overflow-hidden">
+        <div className="w-full h-full max-w-lg lg:max-w-none grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 items-center justify-items-center overflow-hidden">
           
           {/* CAMERA / VIEWFINDER / RESULT STAGE */}
           <div
-            className={`w-full min-w-0 h-full lg:col-span-7 flex flex-col justify-between overflow-hidden ${
+            className={`w-full min-w-0 h-full lg:col-span-7 flex flex-col items-center justify-center overflow-hidden ${
               activeStep === 'style' ? 'hidden lg:flex' : 'flex'
             }`}
           >
@@ -112,7 +112,7 @@ export default function App() {
                 onReset={handleReset}
               />
             ) : (
-              <div className="w-full min-w-0 h-full flex flex-col justify-between overflow-hidden">
+              <div className="w-full min-w-0 h-full flex flex-col items-center justify-center gap-2 overflow-hidden">
                 {/* Viewfinder Lens */}
                 <CaptureViewport
                   framingMode={framingMode}
@@ -123,7 +123,7 @@ export default function App() {
                 />
 
                 {/* Framing Mode Selector */}
-                <div className="flex-shrink-0 pt-1.5 w-full min-w-0">
+                <div className="flex-shrink-0 w-full min-w-0 flex justify-center">
                   <FramingSelector
                     currentMode={framingMode}
                     onSelectMode={(mode) => setFramingMode(mode)}

@@ -142,7 +142,7 @@ export default function CaptureViewport({
   };
 
   return (
-    <div className="relative w-full flex-1 flex flex-col justify-between overflow-hidden bg-black select-none">
+    <div className="relative w-full flex-1 flex flex-col items-center justify-center overflow-hidden bg-black select-none max-w-sm sm:max-w-md mx-auto">
       <input
         ref={fileInputRef}
         type="file"
@@ -151,7 +151,7 @@ export default function CaptureViewport({
         className="hidden"
       />
       {/* Viewfinder Main Card */}
-      <div className="relative w-full aspect-[3/4] sm:aspect-[4/5] max-h-[52dvh] sm:max-h-[500px] bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-800/90 rounded-3xl mx-auto shadow-2xl">
+      <div className="relative w-full aspect-[3/4] sm:aspect-[4/5] max-h-[50dvh] sm:max-h-[480px] bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-800/90 rounded-3xl mx-auto shadow-2xl">
         {/* Shutter Flash Animation */}
         {isShutterFlashing && (
           <div className="absolute inset-0 bg-white z-50 pointer-events-none animate-out fade-out duration-200" />

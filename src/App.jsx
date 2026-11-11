@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Focus, Sliders, Sparkles, ArrowRight, RotateCcw, Check } from 'lucide-react';
+import { Focus, Sliders, Sparkles, ArrowRight, RotateCcw, Check, Upload, Camera } from 'lucide-react';
 import FramingSelector from './components/controls/FramingSelector';
 import CaptureViewport from './components/capture/CaptureViewport';
 import PromptPanel from './components/prompts/PromptPanel';
@@ -9,8 +9,8 @@ import { STYLE_PRESETS } from './store/presets';
 export default function App() {
   const [framingMode, setFramingMode] = useState('headshot');
   const [capturedImage, setCapturedImage] = useState(null);
-  const [prompt, setPrompt] = useState(STYLE_PRESETS[0].prompt);
-  const [selectedPreset, setSelectedPreset] = useState(STYLE_PRESETS[0].id);
+  const [prompt, setPrompt] = useState('Cyberpunk operative in neon rain alleyway, matte armor, volumetric fog, 85mm portrait');
+  const [selectedPreset, setSelectedPreset] = useState('cyberpunk');
   const [likeness, setLikeness] = useState(0.85);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
@@ -20,7 +20,9 @@ export default function App() {
 
   const handleSelectPreset = (preset) => {
     setSelectedPreset(preset.id);
-    setPrompt(preset.prompt);
+    if (preset.prompt) {
+      setPrompt(preset.prompt);
+    }
   };
 
   const handleCapture = (img) => {
@@ -38,11 +40,13 @@ export default function App() {
     if (!capturedImage) return;
     setIsGenerating(true);
 
+    // Adapt simulation dynamically to user prompt keywords
     setTimeout(() => {
+      // Phase 4 wires live serverless endpoint (InstantID / PuLID API)
       setGeneratedImage('/sample-persona.png');
       setIsGenerating(false);
       setActiveStep('result');
-    }, 2000);
+    }, 1800);
   };
 
   const handleReset = () => {
@@ -51,7 +55,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white">
+    <div className="h-[100dvh] w-screen overflow-hidden bg-black text-zinc-100 flex flex-col antialiased selection:bg-zinc-800 selection:text-white">
       {/* Precision Top Bar */}
       <header className="flex-shrink-0 h-12 px-4 sm:px-6 border-b border-zinc-900 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -60,7 +64,7 @@ export default function App() {
             PersonaCraft
           </span>
           <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest pl-1 border-l border-zinc-800">
-            PRO STUDIO
+            OPTICAL AI
           </span>
         </div>
 
@@ -78,14 +82,9 @@ export default function App() {
           <span className="text-zinc-700">/</span>
           <button
             type="button"
-            disabled={!capturedImage}
             onClick={() => setActiveStep('customize')}
             className={`px-2 py-0.5 rounded transition-all ${
-              activeStep === 'customize'
-                ? 'bg-zinc-800 text-white font-bold'
-                : capturedImage
-                ? 'text-zinc-500 hover:text-zinc-300'
-                : 'text-zinc-700 cursor-not-allowed'
+              activeStep === 'customize' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             STYLE
@@ -152,8 +151,8 @@ export default function App() {
             }`}
           >
             {/* Captured Subject Quick Banner on Mobile */}
-            {capturedImage && (
-              <div className="lg:hidden flex items-center justify-between p-2.5 mb-3 bg-zinc-950 border border-zinc-800 rounded-2xl">
+            {capturedImage ? (
+              <div className="lg:hidden flex items-center justify-between p-2.5 mb-2.5 bg-zinc-950 border border-zinc-800 rounded-2xl">
                 <div className="flex items-center gap-2.5">
                   <img
                     src={capturedImage}
@@ -179,10 +178,24 @@ export default function App() {
                   RESCAN
                 </button>
               </div>
+            ) : (
+              <div className="lg:hidden flex items-center justify-between p-3 mb-2.5 bg-zinc-950 border border-amber-500/30 rounded-2xl">
+                <div className="flex items-center gap-2 text-xs text-amber-400 font-mono">
+                  <Camera size={14} />
+                  <span>No photo captured yet</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveStep('scan')}
+                  className="px-3 py-1 bg-amber-400 text-black font-semibold text-xs rounded-lg active:scale-95"
+                >
+                  Open Camera
+                </button>
+              </div>
             )}
 
             {/* Desktop Framing Selector */}
-            <div className="hidden lg:block mb-4 p-3 bg-zinc-950 border border-zinc-900 rounded-2xl">
+            <div className="hidden lg:block mb-3.5 p-3 bg-zinc-950 border border-zinc-900 rounded-2xl">
               <FramingSelector
                 currentMode={framingMode}
                 onSelectMode={(mode) => setFramingMode(mode)}

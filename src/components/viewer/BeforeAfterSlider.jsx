@@ -39,21 +39,26 @@ export default function BeforeAfterSlider({
 
   return (
     <div className="w-full flex-1 flex flex-col justify-between gap-3 bg-black select-none">
-      {/* Slider Viewport */}
+      {/* Slider Viewport with touch-none to prevent mobile page scrolling while dragging */}
       <div
         ref={containerRef}
         onMouseDown={() => setIsDragging(true)}
         onMouseUp={() => setIsDragging(false)}
         onMouseLeave={() => setIsDragging(false)}
         onMouseMove={handleMouseMove}
+        onTouchStart={(e) => {
+          setIsDragging(true);
+          if (e.touches && e.touches[0]) updatePosition(e.touches[0].clientX);
+        }}
+        onTouchEnd={() => setIsDragging(false)}
         onTouchMove={handleTouchMove}
-        className="relative w-full flex-1 min-h-[380px] sm:min-h-[460px] bg-zinc-950 border border-zinc-800/80 rounded-3xl overflow-hidden cursor-ew-resize shadow-2xl"
+        className="relative w-full flex-1 min-h-[360px] sm:min-h-[440px] bg-zinc-950 border border-zinc-800/80 rounded-3xl overflow-hidden cursor-ew-resize shadow-2xl touch-none"
       >
         {/* Generated Image Base */}
         <img
           src={generatedImage}
           alt="Synthesized Persona"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
         />
 
         {/* Original Scanned Image (Clipped) */}
@@ -66,7 +71,7 @@ export default function BeforeAfterSlider({
           <img
             src={originalImage}
             alt="Original Subject"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         </div>
 
@@ -81,10 +86,10 @@ export default function BeforeAfterSlider({
         </div>
 
         {/* High-End Camera Labels */}
-        <div className="absolute top-3 left-3 bg-black/60 border border-zinc-800 text-zinc-300 text-[10px] font-mono px-2.5 py-1 rounded-full backdrop-blur-md pointer-events-none">
+        <div className="absolute top-3 left-3 bg-black/70 border border-zinc-800 text-zinc-300 text-[10px] font-mono px-2.5 py-1 rounded-full backdrop-blur-md pointer-events-none">
           INPUT SCAN
         </div>
-        <div className="absolute top-3 right-3 bg-black/60 border border-zinc-800 text-amber-400 text-[10px] font-mono px-2.5 py-1 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1">
+        <div className="absolute top-3 right-3 bg-black/70 border border-zinc-800 text-amber-400 text-[10px] font-mono px-2.5 py-1 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1">
           <Sparkles size={10} className="text-amber-400" />
           SYNTHESIZED
         </div>

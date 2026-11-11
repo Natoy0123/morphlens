@@ -22,6 +22,18 @@
     min-height: 100%;
     margin: 0;
     padding: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Keep the thumb navigation clear of the iOS home indicator. */
+  .safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
 
   /* Smooth touch scrolling on mobile */

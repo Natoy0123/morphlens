@@ -104,8 +104,8 @@ export default function CaptureViewport({
     const startY = (vHeight - cropHeight) / 2;
 
     const canvas = document.createElement('canvas');
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    canvas.width = Math.round(cropWidth);
+    canvas.height = Math.round(cropHeight);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       setCameraError('Could not prepare the photo. Try uploading one instead.');
@@ -147,11 +147,32 @@ export default function CaptureViewport({
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
+    // Reset the input so choosing the same photo again still fires onChange.
+    e.target.value = '';
     if (!file) return;
+
+    if (file.type && !file.type.startsWith('image/')) {
+      setCameraError('Choose an image file (JPG, PNG, WebP, or HEIC).');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setCameraError('That photo is larger than 20 MB. Choose a smaller image.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      onCapture(event.target.result);
+      const result = event.target?.result;
+      if (typeof result !== 'string') {
+        setCameraError('That photo could not be read. Try another image.');
+        return;
+      }
+      setCameraError('');
+      onCapture(result);
       stopCamera();
+    };
+    reader.onerror = () => {
+      setCameraError('That photo could not be read. Try another image.');
     };
     reader.readAsDataURL(file);
   };
@@ -182,7 +203,7 @@ export default function CaptureViewport({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
-            <div className="absolute top-3.5 left-3.5 flex items-center gap-2 bg-black/75 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md shadow-lg">
+            <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/75 border border-zinc-700 text-zinc-100 px-3 py-2 rounded-full text-sm font-semibold backdrop-blur-md shadow-lg">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               Subject Acquired
             </div>
@@ -190,9 +211,9 @@ export default function CaptureViewport({
             <button
               type="button"
               onClick={onClearCapture}
-              className="absolute top-3.5 right-3.5 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+              className="absolute top-3 right-3 min-h-[40px] bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3.5 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
             >
-              <RotateCcw size={12} />
+              <RotateCcw size={14} />
               Retake
             </button>
           </div>
@@ -237,28 +258,30 @@ export default function CaptureViewport({
             </div>
 
             {/* Top HUD with Close & Flip */}
-            <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between pointer-events-auto z-20">
+            <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto z-20">
               <button
                 type="button"
                 onClick={stopCamera}
-                className="w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Close Camera"
+                aria-label="Close Camera"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
 
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-xs font-semibold text-zinc-200">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-xs font-semibold text-zinc-200">
                 <Focus size={12} className="text-amber-400" />
-                <span>AF Active</span>
+                <span>LIVE</span>
               </div>
 
               <button
                 type="button"
                 onClick={toggleFacingMode}
-                className="w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Flip Camera"
+                aria-label="Flip Camera"
               >
-                <SwitchCamera size={15} />
+                <SwitchCamera size={17} />
               </button>
             </div>
           </div>
@@ -273,16 +296,16 @@ export default function CaptureViewport({
                 <Focus size={30} className="text-amber-400 stroke-[1.7]" />
               </div>
 
-              <h3 className="text-base font-bold tracking-tight text-white mb-1">
+              <h3 className="text-lg font-bold tracking-tight text-white mb-1">
                 Optical Scanner
               </h3>
-              <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+              <p className="text-sm text-zinc-300 mb-5 leading-relaxed">
                 Scan your face or stance to synthesize any character or attire.
               </p>
 
               {cameraError && (
-                <div className="flex items-center gap-2 p-2.5 mb-3 bg-red-950/50 border border-red-800/50 text-red-300 rounded-xl text-xs text-left">
-                  <AlertCircle size={14} className="flex-shrink-0 text-red-400" />
+                <div className="flex items-start gap-2 p-3 mb-3 bg-red-950/50 border border-red-800/50 text-red-200 rounded-xl text-sm text-left">
+                  <AlertCircle size={16} className="flex-shrink-0 text-red-400 mt-0.5" />
                   <span>{cameraError}</span>
                 </div>
               )}
@@ -292,18 +315,18 @@ export default function CaptureViewport({
                 <button
                   type="button"
                   onClick={() => startCamera()}
-                  className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-98"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-98"
                 >
-                  <Camera size={16} />
+                  <Camera size={18} />
                   Open Camera
                 </button>
 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                  className="w-full min-h-[44px] py-3 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-semibold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-98"
                 >
-                  <Upload size={13} />
+                  <Upload size={15} />
                   Upload Photo
                 </button>
               </div>
@@ -322,7 +345,7 @@ export default function CaptureViewport({
             title="Upload Photo"
           >
             <ImageIcon size={18} />
-            <span className="text-[9px] font-semibold mt-0.5 text-zinc-400">Photo</span>
+            <span className="text-xs font-semibold mt-0.5 text-zinc-300">Photo</span>
           </button>
 
           {/* Shutter Button */}
@@ -343,7 +366,7 @@ export default function CaptureViewport({
             title="Close Camera"
           >
             <X size={18} />
-            <span className="text-[9px] font-semibold mt-0.5 text-zinc-400">Close</span>
+            <span className="text-xs font-semibold mt-0.5 text-zinc-300">Close</span>
           </button>
         </div>
       )}

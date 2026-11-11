@@ -149,26 +149,26 @@ export default function App() {
             M
           </div>
           <span className="font-bold text-sm tracking-tight text-white">MorphLens</span>
-          <span className="text-[9px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded-full">
+          <span className="hidden min-[380px]:inline text-xs font-semibold text-zinc-300 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
             Studio
           </span>
         </div>
 
         {/* Header Right Status */}
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 bg-zinc-900/80 border border-zinc-800/80 px-2 py-0.5 rounded-full">
-            <Shield size={11} className={apiKey ? 'text-emerald-400' : 'text-amber-400'} />
-            <span className="hidden xs:inline">{apiKey ? 'Identity' : 'Prompt'}</span> Mode
+          <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800/80 px-2.5 py-1 rounded-full">
+            <Shield size={12} className={apiKey ? 'text-emerald-400' : 'text-amber-400'} />
+            {apiKey ? 'Identity' : 'Prompt'} Mode
           </span>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 w-full max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-col justify-center items-center overflow-hidden">
-        <div className="w-full h-full max-w-lg lg:max-w-none grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 items-center justify-items-center overflow-hidden">
+      <main className="flex-1 min-h-0 min-w-0 w-full max-w-6xl mx-auto px-3 sm:px-6 py-2 flex flex-col justify-start lg:justify-center items-center overflow-hidden">
+        <div className="w-full h-full min-h-0 max-w-lg lg:max-w-none grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 items-start lg:items-center justify-items-center overflow-hidden">
           {/* CAMERA / VIEWFINDER / RESULT STAGE */}
           <div
-            className={`w-full min-w-0 h-full lg:col-span-7 flex flex-col items-center justify-center overflow-hidden ${
+            className={`w-full min-w-0 h-full min-h-0 lg:col-span-7 flex flex-col items-center justify-start lg:justify-center overflow-y-auto no-scrollbar lg:overflow-hidden ${
               activeStep === 'style' ? 'hidden lg:flex' : 'flex'
             }`}
           >
@@ -180,7 +180,7 @@ export default function App() {
                 onReset={handleReset}
               />
             ) : (
-              <div className="w-full min-w-0 h-full flex flex-col items-center justify-center gap-2 overflow-hidden">
+              <div className="w-full min-w-0 min-h-full flex flex-col items-center justify-start lg:justify-center gap-2 overflow-x-hidden">
                 {/* Viewfinder Lens */}
                 <CaptureViewport
                   framingMode={framingMode}
@@ -202,24 +202,24 @@ export default function App() {
 
           {/* CUSTOMIZER & PROMPT STAGE */}
           <div
-            className={`w-full min-w-0 h-full lg:col-span-5 flex flex-col justify-center overflow-y-auto no-scrollbar ${
+            className={`w-full min-w-0 h-full min-h-0 lg:col-span-5 flex flex-col justify-start overflow-y-auto overscroll-contain no-scrollbar pb-5 lg:pb-2 ${
               activeStep === 'style' ? 'flex' : 'hidden lg:flex'
             }`}
           >
             {/* Captured Subject Quick Banner on Mobile */}
             {capturedImage ? (
-              <div className="lg:hidden flex items-center justify-between p-2.5 mb-2.5 bg-zinc-950 border border-zinc-800 rounded-2xl w-full">
+              <div className="lg:hidden flex items-center justify-between gap-2 p-2.5 mb-2.5 bg-zinc-950 border border-zinc-800 rounded-2xl w-full">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <img
                     src={capturedImage}
                     alt="Subject Preview"
-                    className="w-10 h-10 rounded-xl object-cover border border-zinc-700 flex-shrink-0"
+                    className="w-11 h-11 rounded-xl object-cover border border-zinc-700 flex-shrink-0"
                   />
                   <div className="min-w-0">
-                    <span className="text-xs font-semibold text-zinc-100 block truncate">
-                      Subject Stance Locked
+                    <span className="text-sm font-semibold text-zinc-100 block truncate">
+                      Subject Captured
                     </span>
-                    <span className="text-[10px] text-zinc-400 uppercase font-semibold">
+                    <span className="text-xs text-zinc-400 uppercase font-semibold">
                       Mode: {framingMode}
                     </span>
                   </div>
@@ -228,27 +228,42 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleClearCapture}
-                  className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-medium flex items-center gap-1 hover:text-white flex-shrink-0"
+                  className="px-3 py-2 min-h-[40px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm font-medium flex items-center gap-1.5 hover:text-white flex-shrink-0 active:scale-95"
                 >
-                  <RotateCcw size={11} />
+                  <RotateCcw size={13} />
                   Retake
                 </button>
               </div>
             ) : (
-              <div className="lg:hidden flex items-center justify-between p-3 mb-2.5 bg-zinc-950 border border-amber-500/30 rounded-2xl w-full">
-                <div className="flex items-center gap-2 text-xs text-amber-300 font-semibold min-w-0">
-                  <Camera size={14} className="flex-shrink-0 text-amber-400" />
+              <div className="lg:hidden flex items-center justify-between gap-2 p-3 mb-2.5 bg-zinc-950 border border-amber-500/30 rounded-2xl w-full">
+                <div className="flex items-center gap-2 text-sm text-amber-300 font-semibold min-w-0">
+                  <Camera size={16} className="flex-shrink-0 text-amber-400" />
                   <span className="truncate">No photo scanned yet</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveStep('scan')}
-                  className="px-3 py-1 bg-white text-black font-bold text-xs rounded-lg active:scale-95 flex-shrink-0"
+                  className="px-3 py-2 min-h-[40px] bg-white text-black font-bold text-sm rounded-lg active:scale-95 flex-shrink-0"
                 >
                   Open Camera
                 </button>
               </div>
             )}
+
+            {/* Framing Selector: mobile style step needs its own copy because the
+                camera stage (which holds the other selector) is hidden here. */}
+            <div className="lg:hidden w-full mb-2.5 p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-2xl">
+              <div className="flex items-center justify-between px-1 mb-1.5">
+                <span className="text-xs font-mono tracking-wider uppercase text-zinc-300 font-semibold">
+                  Framing
+                </span>
+                <span className="text-xs text-zinc-400">Tap to change</span>
+              </div>
+              <FramingSelector
+                currentMode={framingMode}
+                onSelectMode={(mode) => setFramingMode(mode)}
+              />
+            </div>
 
             {/* Desktop Framing Selector */}
             <div className="hidden lg:block mb-3 p-3 bg-zinc-950 border border-zinc-900 rounded-2xl w-full">
@@ -283,47 +298,49 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation Bar (Thumb Zone) */}
-      <nav className="flex-shrink-0 lg:hidden border-t border-zinc-900 bg-black/95 backdrop-blur-xl px-6 py-2 flex items-center justify-around z-50">
+      <nav className="flex-shrink-0 lg:hidden border-t border-zinc-900 bg-black/95 backdrop-blur-xl px-4 pt-1.5 safe-bottom flex items-center justify-around z-50">
         <button
           type="button"
           onClick={() => setActiveStep('scan')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
+          aria-current={activeStep === 'scan' ? 'page' : undefined}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'scan'
-              ? 'text-amber-400 font-bold scale-105'
-              : 'text-zinc-500 hover:text-zinc-300'
+              ? 'text-amber-400 font-bold'
+              : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
-          <Camera size={19} />
-          <span className="text-[11px] font-semibold">1. Camera</span>
+          <Camera size={21} />
+          <span className="text-xs font-semibold">1. Camera</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveStep('style')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
+          aria-current={activeStep === 'style' ? 'page' : undefined}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'style'
-              ? 'text-amber-400 font-bold scale-105'
-              : 'text-zinc-500 hover:text-zinc-300'
+              ? 'text-amber-400 font-bold'
+              : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
-          <Wand2 size={19} />
-          <span className="text-[11px] font-semibold">2. Style</span>
+          <Wand2 size={21} />
+          <span className="text-xs font-semibold">2. Style</span>
         </button>
 
         <button
           type="button"
           disabled={!generatedImage}
           onClick={() => setActiveStep('result')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'result'
-              ? 'text-amber-400 font-bold scale-105'
+              ? 'text-amber-400 font-bold'
               : generatedImage
-                ? 'text-zinc-500 hover:text-zinc-300'
-                : 'text-zinc-800 cursor-not-allowed opacity-40'
+                ? 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-600 cursor-not-allowed opacity-60'
           }`}
         >
-          <Sparkles size={19} />
-          <span className="text-[11px] font-semibold">3. Result</span>
+          <Sparkles size={21} />
+          <span className="text-xs font-semibold">3. Result</span>
         </button>
       </nav>
     </div>

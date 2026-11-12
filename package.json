@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "test": "node --test src/api/promptBuilder.test.js src/api/generateApi.test.js",
+    "test": "node --test src/api/promptBuilder.test.js src/api/generateApi.test.js src/api/promptEnhancer.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

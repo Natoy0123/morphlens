@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Upload, RotateCcw, SwitchCamera, X, AlertCircle, ImageIcon, Check } from 'lucide-react';
+import { Camera, Upload, SwitchCamera, X, AlertCircle, ImageIcon, Check, Trash2 } from 'lucide-react';
 
 export default function CaptureViewport({
   framingMode,
@@ -207,14 +207,27 @@ export default function CaptureViewport({
               <span>Reference Photo Loaded</span>
             </div>
 
-            <button
-              type="button"
-              onClick={onClearCapture}
-              className="absolute top-3 right-3 min-h-[38px] bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
-            >
-              <RotateCcw size={13} />
-              Retake
-            </button>
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="min-h-[38px] bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                title="Replace with another photo"
+              >
+                <Upload size={13} />
+                <span>Replace</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onClearCapture}
+                className="min-h-[38px] bg-red-950/80 hover:bg-red-900/90 border border-red-800/80 text-red-200 hover:text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                title="Remove attached photo"
+              >
+                <Trash2 size={13} className="text-red-400" />
+                <span>Remove</span>
+              </button>
+            </div>
           </div>
         ) : isCameraActive ? (
           /* Live Viewfinder Feed */

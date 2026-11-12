@@ -10,10 +10,14 @@ import {
   Lock,
   Layers,
   ArrowRight,
+  Trash2,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
-import { STYLE_PRESETS } from '../../store/presets';
+import { PRESET_CATEGORIES, STYLE_PRESETS } from '../../store/presets';
 import { isValidApiKey, maskApiKey } from '../../api/apiKey';
 import { validateApiKey } from '../../api/generateApi';
+import { enhancePrompt } from '../../api/promptEnhancer';
 
 const STYLE_TAGS = [
   '85mm Portrait Lens',
@@ -45,6 +49,7 @@ export default function PromptPanel({
   isGenerating,
   onGenerate,
   hasCapturedSubject,
+  onRemoveCapture,
   apiKey,
   onApiKeyChange,
   error,
@@ -56,6 +61,21 @@ export default function PromptPanel({
   const [keyError, setKeyError] = useState('');
   const [keyWarning, setKeyWarning] = useState('');
   const [keyStatus, setKeyStatus] = useState('idle');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+  const handleEnhance = async () => {
+    if (!prompt.trim() || isEnhancing) return;
+    setIsEnhancing(true);
+    try {
+      const enriched = await enhancePrompt({ prompt, apiKey });
+      if (enriched && enriched !== prompt) {
+        onPromptChange(enriched);
+      }
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   const handleToggleTag = (tag) => {
     if (prompt.toLowerCase().includes(tag.toLowerCase())) {
@@ -112,13 +132,14 @@ export default function PromptPanel({
 
   const emptyPrompt = !prompt.trim();
   const isBlocked = retryAfter > 0;
-  const disabled = isGenerating || !hasCapturedSubject || emptyPrompt || isBlocked;
+  const disabled = isGenerating || emptyPrompt || isBlocked;
 
   let ctaLabel = 'GENERATE PORTRAIT';
-  if (!hasCapturedSubject) ctaLabel = 'CAPTURE PHOTO FIRST';
-  else if (emptyPrompt) ctaLabel = 'DESCRIBE YOUR PORTRAIT';
+  if (emptyPrompt) ctaLabel = 'DESCRIBE YOUR PORTRAIT';
   else if (isGenerating) ctaLabel = 'GENERATING PORTRAIT…';
   else if (isBlocked) ctaLabel = `RETRY IN ${retryAfter}S`;
+  else if (hasCapturedSubject) ctaLabel = 'REFACTOR PORTRAIT';
+  else ctaLabel = 'GENERATE FROM PROMPT';
 
   return (
     <div className="flex flex-col gap-3.5 p-3.5 sm:p-5 bg-zinc-950 border border-zinc-800 rounded-2xl">
@@ -132,9 +153,26 @@ export default function PromptPanel({
             <SlidersHorizontal size={14} className="text-zinc-400 flex-shrink-0" />
             Style & Transformation Direction
           </label>
-          <span className="hidden sm:inline text-xs text-zinc-500 font-mono flex-shrink-0">
-            PROMPT CONTROL
-          </span>
+
+          <button
+            type="button"
+            onClick={handleEnhance}
+            disabled={isEnhancing || !prompt.trim()}
+            className="flex items-center gap-1 text-[11px] font-medium text-amber-300 hover:text-amber-200 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/60 px-2 py-0.5 rounded-md transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+            title="Expand into professional studio lighting & fabric prompts"
+          >
+            {isEnhancing ? (
+              <>
+                <Loader2 size={12} className="animate-spin text-amber-300" />
+                <span>Enhancing...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={12} className="text-amber-400" />
+                <span>Enhance with AI</span>
+              </>
+            )}
+          </button>
         </div>
 
         <textarea
@@ -159,9 +197,22 @@ export default function PromptPanel({
             <Lock size={13} className="text-zinc-400" />
             Preservation Controls
           </span>
-          <span className="text-[11px] font-mono text-zinc-400">
-            {hasCapturedSubject ? 'Active' : 'Awaiting Photo'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-zinc-400">
+              {hasCapturedSubject ? 'Photo Active' : 'Awaiting Photo'}
+            </span>
+            {hasCapturedSubject && onRemoveCapture && (
+              <button
+                type="button"
+                onClick={onRemoveCapture}
+                className="text-[11px] font-semibold text-red-400 hover:text-red-300 flex items-center gap-1 bg-red-950/50 hover:bg-red-900/60 border border-red-900/50 px-2 py-0.5 rounded-md transition-colors active:scale-95"
+                title="Remove attached photo"
+              >
+                <Trash2 size={11} />
+                Remove
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Likeness Slider */}
@@ -214,9 +265,9 @@ export default function PromptPanel({
         </div>
       </div>
 
-      {/* Quick Curated Presets */}
+      {/* Quick Curated Presets with Categories */}
       <div>
-        <div className="flex items-center justify-between gap-2 mb-1.5 px-1">
+        <div className="flex items-center justify-between gap-2 mb-2 px-1">
           <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
             <Layers size={13} className="text-zinc-400" />
             Curated Styles
@@ -224,9 +275,32 @@ export default function PromptPanel({
           <span className="text-xs text-zinc-500 hidden sm:inline">Tap to apply</span>
         </div>
 
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-1 mb-2 overflow-x-auto no-scrollbar pb-0.5">
+          {PRESET_CATEGORIES.map((cat) => {
+            const isActive = selectedCategory === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex-shrink-0 ${
+                  isActive
+                    ? 'border-zinc-400 bg-zinc-800 text-white font-semibold'
+                    : 'border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                }`}
+              >
+                {cat}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="relative">
           <div className="flex overflow-x-auto overscroll-x-contain no-scrollbar gap-2 py-1 -mx-1 pl-1 pr-6">
-            {STYLE_PRESETS.map((preset) => {
+            {STYLE_PRESETS.filter(
+              (p) => selectedCategory === 'All' || p.category === selectedCategory
+            ).map((preset) => {
               const isSelected = selectedPreset === preset.id;
               return (
                 <button

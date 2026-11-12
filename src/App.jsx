@@ -7,6 +7,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   BookOpen,
+  Trash2,
+  History,
 } from 'lucide-react';
 import FramingSelector from './components/controls/FramingSelector';
 import CaptureViewport from './components/capture/CaptureViewport';
@@ -15,9 +17,11 @@ import BeforeAfterSlider from './components/viewer/BeforeAfterSlider';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import StudioGuideDialog from './components/ui/StudioGuideDialog';
 import ImageViewerDialog from './components/ui/ImageViewerDialog';
+import HistoryDrawer from './components/history/HistoryDrawer';
 import Toast from './components/ui/Toast';
 import { synthesizePersona } from './api/generateApi';
 import { readApiKey, saveApiKey } from './api/apiKey';
+import { saveGenerationRecord } from './services/historyStorage';
 
 export default function App() {
   const [framingMode, setFramingMode] = useState('headshot');
@@ -48,6 +52,7 @@ export default function App() {
   const [showRetakeConfirm, setShowRetakeConfirm] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   // Active step: 'scan' | 'style' | 'result'
@@ -122,6 +127,7 @@ export default function App() {
     clearCooldown();
     setActiveStep('scan');
     setShowRetakeConfirm(false);
+    setToastMessage('Reference photo removed');
   };
 
   const handleClearCaptureRequest = () => {
@@ -170,6 +176,18 @@ export default function App() {
       clearCooldown();
       setActiveStep('result');
       setToastMessage('Portrait synthesized successfully');
+
+      // Save to local IndexedDB history automatically
+      saveGenerationRecord({
+        originalImage: capturedImage,
+        generatedImage: result.url,
+        prompt,
+        styleId: selectedPreset,
+        likeness,
+        seed: null,
+        model: result.model,
+        framingMode,
+      }).catch((err) => console.warn('Could not auto-save to history:', err));
     } catch (err) {
       console.error('Portrait generation error:', err);
       setError(err instanceof Error ? err.message : 'Generation failed. Try again.');
@@ -180,6 +198,22 @@ export default function App() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleSelectHistoricalGeneration = (item) => {
+    if (!item) return;
+    if (item.originalUrl) {
+      setCapturedImage(item.originalUrl);
+    }
+    replaceGeneratedImage(item.generatedUrl);
+    if (item.prompt) setPrompt(item.prompt);
+    if (item.styleId) setSelectedPreset(item.styleId);
+    if (typeof item.likeness === 'number') setLikeness(item.likeness);
+    if (item.framingMode) setFramingMode(item.framingMode);
+    setIdentityUsed(Boolean(item.originalUrl));
+    setRenderInfo({ model: item.model || 'FLUX.1', promptUsed: item.prompt });
+    setActiveStep('result');
+    setToastMessage('Loaded portrait from history');
   };
 
   const handleReset = () => {
@@ -202,6 +236,16 @@ export default function App() {
 
         {/* Header Right Controls */}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowHistory(true)}
+            className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors active:scale-95 shadow-sm"
+            title="View portrait history"
+          >
+            <History size={13} className="text-zinc-400" />
+            <span>History</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setShowGuide(true)}
@@ -289,14 +333,29 @@ export default function App() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleClearCaptureRequest}
-                  className="px-3 py-2 min-h-[40px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 hover:text-white flex-shrink-0 active:scale-95"
-                >
-                  <RotateCcw size={13} />
-                  Change
-                </button>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStep('scan');
+                      setToastMessage('Choose or take a replacement photo');
+                    }}
+                    className="px-2.5 py-1.5 min-h-[36px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-semibold flex items-center gap-1 hover:text-white active:scale-95"
+                    title="Change photo"
+                  >
+                    <RotateCcw size={12} />
+                    Change
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearCaptureRequest}
+                    className="px-2.5 py-1.5 min-h-[36px] rounded-xl bg-red-950/60 border border-red-900/60 text-red-300 text-xs font-semibold flex items-center gap-1 hover:bg-red-900/80 hover:text-white active:scale-95"
+                    title="Remove attached photo"
+                  >
+                    <Trash2 size={12} className="text-red-400" />
+                    Remove
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="lg:hidden flex items-center justify-between gap-2 p-3 mb-2.5 bg-zinc-950 border border-zinc-800 rounded-2xl w-full">
@@ -335,6 +394,7 @@ export default function App() {
                 isGenerating={isGenerating}
                 onGenerate={handleGenerate}
                 hasCapturedSubject={Boolean(capturedImage)}
+                onRemoveCapture={handleClearCaptureRequest}
                 apiKey={apiKey}
                 onApiKeyChange={handleApiKeyChange}
                 error={error}
@@ -418,6 +478,17 @@ export default function App() {
           a.click();
           setToastMessage('Downloaded full-resolution portrait');
         }}
+      />
+
+      <HistoryDrawer
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        onSelectGeneration={handleSelectHistoricalGeneration}
+        onInspectImage={(url) => {
+          replaceGeneratedImage(url);
+          setShowImageViewer(true);
+        }}
+        onNotify={setToastMessage}
       />
 
       <Toast message={toastMessage} onClose={() => setToastMessage('')} />

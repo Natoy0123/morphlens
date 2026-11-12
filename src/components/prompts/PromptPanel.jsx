@@ -6,13 +6,12 @@ import {
   AlertCircle,
   ExternalLink,
   Check,
-  Layers,
   ArrowRight,
   Trash2,
   Loader2,
   Sparkles,
-  Sliders,
   Tag,
+  RotateCcw,
 } from 'lucide-react';
 import { PRESET_CATEGORIES, STYLE_PRESETS } from '../../store/presets';
 import { isValidApiKey, maskApiKey } from '../../api/apiKey';
@@ -48,13 +47,14 @@ export default function PromptPanel({
   isGenerating,
   onGenerate,
   hasCapturedSubject,
+  capturedImage,
+  onChangeCapture,
   onRemoveCapture,
   apiKey,
   onApiKeyChange,
   error,
   retryAfter,
 }) {
-  const [activeTab, setActiveTab] = useState('presets'); // 'presets' | 'custom'
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showLikenessDetails, setShowLikenessDetails] = useState(false);
   const [showModifiers, setShowModifiers] = useState(false);
@@ -150,330 +150,337 @@ export default function PromptPanel({
       : STYLE_PRESETS.filter((p) => p.category === selectedCategory);
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 border border-zinc-800 rounded-3xl p-3 sm:p-4.5 shadow-2xl relative">
-      {/* 1. Studio Segmented Switcher */}
-      <div className="flex p-1 bg-zinc-900/90 border border-zinc-800/80 rounded-2xl mb-3 flex-shrink-0">
-        <button
-          type="button"
-          onClick={() => setActiveTab('presets')}
-          className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
-            activeTab === 'presets'
-              ? 'bg-zinc-800 text-white shadow-sm border border-zinc-700/60'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Layers size={13} className={activeTab === 'presets' ? 'text-white' : 'text-zinc-400'} />
-          <span>Curated Personas</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('custom')}
-          className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
-            activeTab === 'custom'
-              ? 'bg-zinc-800 text-white shadow-sm border border-zinc-700/60'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <SlidersHorizontal
-            size={13}
-            className={activeTab === 'custom' ? 'text-white' : 'text-zinc-400'}
-          />
-          <span>Custom Direction</span>
-        </button>
-      </div>
-
-      {/* 2. Scrollable Body Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5 no-scrollbar">
-        {/* --- TAB 1: CURATED PRESETS --- */}
-        {activeTab === 'presets' && (
-          <div className="space-y-3">
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-              {PRESET_CATEGORIES.map((cat) => {
-                const isActive = selectedCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 flex-shrink-0 ${
-                      isActive
-                        ? 'border-zinc-300 bg-white text-black font-semibold shadow-sm'
-                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-zinc-700'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Presets Grid */}
-            <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto overscroll-contain no-scrollbar pr-0.5">
-              {filteredPresets.map((preset) => {
-                const isSelected = selectedPreset === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => {
-                      onSelectPreset(preset);
-                      if (typeof preset.preserveEnvironment === 'boolean') {
-                        onPreserveEnvironmentChange?.(preset.preserveEnvironment);
-                      }
-                    }}
-                    className={`p-3 rounded-2xl border text-left transition-all active:scale-[0.98] flex flex-col justify-between gap-1.5 ${
-                      isSelected
-                        ? 'border-white bg-zinc-900 shadow-md ring-1 ring-white/20'
-                        : 'border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-1">
-                      <span className="text-xs font-semibold text-zinc-100 line-clamp-1">
-                        {preset.name}
-                      </span>
-                      {isSelected && (
-                        <div className="w-4 h-4 rounded-full bg-white text-black flex items-center justify-center flex-shrink-0 shadow">
-                          <Check size={10} className="stroke-[3]" />
-                        </div>
-                      )}
-                    </div>
-
-                    <span className="text-[10px] text-zinc-400 font-mono capitalize">
-                      {preset.category}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected Preset Snippet Preview */}
-            <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl flex items-center justify-between text-xs text-zinc-300">
-              <span className="truncate pr-2 text-zinc-400 text-[11px] font-sans">
-                Active prompt: <span className="text-zinc-200">{prompt}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveTab('custom')}
-                className="text-[11px] text-zinc-400 hover:text-white underline flex-shrink-0"
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* --- TAB 2: CUSTOM PROMPT --- */}
-        {activeTab === 'custom' && (
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between px-1">
-              <label
-                htmlFor="persona-prompt"
-                className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5"
-              >
-                Describe Style & Transformation
-              </label>
-
-              <button
-                type="button"
-                onClick={handleEnhance}
-                disabled={isEnhancing || !prompt.trim()}
-                className="flex items-center gap-1 text-[11px] font-medium text-amber-300 hover:text-amber-200 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/60 px-2.5 py-1 rounded-lg transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none shadow-sm"
-                title="Expand with AI portrait lighting & fabric details"
-              >
-                {isEnhancing ? (
-                  <>
-                    <Loader2 size={12} className="animate-spin text-amber-300" />
-                    <span>Enhancing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={12} className="text-amber-400" />
-                    <span>Enhance with AI</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <textarea
-              id="persona-prompt"
-              rows={4}
-              value={prompt}
-              onChange={(e) => {
-                onPromptChange(e.target.value);
-                if (selectedPreset !== 'custom') {
-                  onSelectPreset({ id: 'custom', name: 'Custom Direction' });
-                }
-              }}
-              placeholder="Describe what to wear, lighting, and scene atmosphere (e.g. Bespoke navy tailored suit with white collared dress shirt, pure white studio background)..."
-              className="w-full px-3.5 py-2.5 bg-zinc-900/90 border border-zinc-800 focus:border-zinc-500 rounded-2xl text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none transition-colors resize-none leading-relaxed font-sans"
-            />
-
-            {/* Quick Modifiers Collapsible Tray */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowModifiers(!showModifiers)}
-                className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 py-1"
-              >
-                <Tag size={11} />
-                <span>{showModifiers ? 'Hide Modifier Tags' : '+ Add Photography Modifiers'}</span>
-              </button>
-
-              {showModifiers && (
-                <div className="flex flex-wrap gap-1.5 pt-1.5 animate-in fade-in duration-150">
-                  {STYLE_TAGS.map((tag) => {
-                    const isApplied = prompt.toLowerCase().includes(tag.toLowerCase());
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => handleToggleTag(tag)}
-                        className={`px-2 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-95 ${
-                          isApplied
-                            ? 'border-zinc-400 bg-zinc-800 text-white font-semibold'
-                            : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
-                        }`}
-                      >
-                        {isApplied ? '✓ ' : '+ '}
-                        {tag}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Negative Exclusions Drawer */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowNegative(!showNegative)}
-                className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 py-1"
-              >
-                <ChevronDown
-                  size={12}
-                  className={`transition-transform duration-150 ${showNegative ? 'rotate-180' : ''}`}
+    <div className="flex flex-col h-full bg-zinc-950/80 border border-zinc-800/90 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-xl relative min-h-0">
+      {/* 1. Identity & Reference Subject Bar */}
+      {hasCapturedSubject ? (
+        <div className="p-2 sm:p-2.5 bg-zinc-900/60 border border-zinc-800/80 rounded-xl sm:rounded-2xl flex-shrink-0 mb-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {capturedImage ? (
+                <img
+                  src={capturedImage}
+                  alt="Reference"
+                  className="w-8 h-8 rounded-lg object-cover border border-zinc-700 flex-shrink-0"
                 />
-                <span>Negative Exclusions</span>
+              ) : (
+                <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+              )}
+              <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-semibold text-zinc-200">
+                  Subject Loaded
+                </span>
+                <span className="text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded font-mono">
+                  {Math.round(likeness * 100)}% match
+                </span>
+                {preservePose && (
+                  <span className="hidden min-[400px]:inline text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded font-mono">
+                    Pose locked
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowLikenessDetails((prev) => !prev)}
+                className={`text-[11px] px-2 py-1 rounded-lg border transition-all flex items-center gap-1 ${
+                  showLikenessDetails
+                    ? 'bg-zinc-800 text-white border-zinc-600'
+                    : 'bg-zinc-900/80 text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700'
+                }`}
+                title="Tune likeness and pose constraints"
+              >
+                <SlidersHorizontal size={11} />
+                <span>Tune</span>
               </button>
 
-              {showNegative && (
-                <div className="pt-1.5 animate-in fade-in duration-150">
-                  <input
-                    type="text"
-                    value={negativePrompt}
-                    onChange={(e) => onNegativePromptChange(e.target.value)}
-                    placeholder="Features to suppress (e.g. blurry, oversaturated, deformed hands)..."
-                    aria-label="Negative prompt"
-                    className="w-full px-3 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 font-sans"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 3. Contextual Identity & Preservation Card */}
-        {hasCapturedSubject ? (
-          <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-semibold text-zinc-200">
-                  Identity Lock: {Math.round(likeness * 100)}%
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
+              {onChangeCapture && (
                 <button
                   type="button"
-                  onClick={() => setShowLikenessDetails(!showLikenessDetails)}
-                  className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1 bg-zinc-800/80 hover:bg-zinc-800 px-2 py-0.5 rounded-lg border border-zinc-700/60 transition-colors"
+                  onClick={onChangeCapture}
+                  className="text-[11px] px-2 py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 transition-all flex items-center gap-1"
+                  title="Change reference photo"
                 >
-                  <Sliders size={11} />
-                  <span>{showLikenessDetails ? 'Hide' : 'Fine-Tune'}</span>
+                  <RotateCcw size={11} />
+                  <span className="hidden sm:inline">Change</span>
                 </button>
+              )}
 
-                {onRemoveCapture && (
-                  <button
-                    type="button"
-                    onClick={onRemoveCapture}
-                    className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 bg-red-950/40 hover:bg-red-900/60 border border-red-900/50 px-2 py-0.5 rounded-lg transition-colors active:scale-95"
-                    title="Remove attached photo"
-                  >
-                    <Trash2 size={11} />
-                    <span>Remove</span>
-                  </button>
-                )}
+              {onRemoveCapture && (
+                <button
+                  type="button"
+                  onClick={onRemoveCapture}
+                  className="text-[11px] px-2 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-900/50 transition-all flex items-center gap-1"
+                  title="Remove reference photo"
+                >
+                  <Trash2 size={11} />
+                  <span className="hidden sm:inline">Remove</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Expanded Fine-Tune Accordion */}
+          {showLikenessDetails && (
+            <div className="pt-2 border-t border-zinc-800/80 space-y-2.5 animate-in fade-in duration-150">
+              <div>
+                <div className="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
+                  <span>Facial Likeness Fidelity</span>
+                  <span className="font-mono text-zinc-200 font-medium">
+                    {Math.round(likeness * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.3"
+                  max="1.0"
+                  step="0.05"
+                  value={likeness}
+                  onChange={(e) => onLikenessChange(parseFloat(e.target.value))}
+                  aria-label="Identity retention"
+                  className="w-full accent-white cursor-pointer h-1.5 bg-zinc-800 rounded-lg"
+                />
+                <div className="flex justify-between text-[9px] font-mono text-zinc-500 mt-0.5">
+                  <span>Flexible (0.3)</span>
+                  <span>Strict (1.0)</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs pt-0.5">
+                <label className="flex items-center gap-1.5 text-zinc-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={preservePose && preserveBody}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      onPreservePoseChange?.(val);
+                      onPreserveBodyChange?.(val);
+                    }}
+                    className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span>Lock Body Pose</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 text-zinc-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={preserveEnvironment}
+                    onChange={(e) => onPreserveEnvironmentChange?.(e.target.checked)}
+                    className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span>Keep Background</span>
+                </label>
               </div>
             </div>
+          )}
+        </div>
+      ) : (
+        <div className="px-3 py-2 bg-zinc-900/30 border border-zinc-800/60 rounded-xl flex items-center justify-between text-xs text-zinc-400 flex-shrink-0 mb-3">
+          <span className="truncate">Generating pure persona without reference photo</span>
+          {onChangeCapture && (
+            <button
+              type="button"
+              onClick={onChangeCapture}
+              className="text-[11px] text-zinc-300 hover:text-white underline font-medium flex-shrink-0 ml-2"
+            >
+              + Add Photo
+            </button>
+          )}
+        </div>
+      )}
 
-            {showLikenessDetails && (
-              <div className="pt-2 border-t border-zinc-800/80 space-y-3 animate-in fade-in duration-150">
-                <div>
-                  <div className="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
-                    <span>Facial Likeness Fidelity</span>
-                    <span className="font-mono text-zinc-200 font-medium">
-                      {Math.round(likeness * 100)}%
+      {/* 2. Scrollable Body: Presets Filmstrip & Prompt Customizer */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-0.5 no-scrollbar">
+        {/* Presets Shelf */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-zinc-300">
+              Style Presets
+            </span>
+            <span className="text-[10px] text-zinc-500 font-mono">
+              Tap to apply
+            </span>
+          </div>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {PRESET_CATEGORIES.map((cat) => {
+              const isActive = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all active:scale-95 flex-shrink-0 ${
+                    isActive
+                      ? 'border-white bg-white text-black font-semibold shadow-sm'
+                      : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-zinc-700'
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Horizontal Preset Filmstrip */}
+          <div className="flex items-stretch gap-2 overflow-x-auto no-scrollbar py-1 overscroll-x-contain">
+            {filteredPresets.map((preset) => {
+              const isSelected = selectedPreset === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectPreset(preset);
+                    if (typeof preset.preserveEnvironment === 'boolean') {
+                      onPreserveEnvironmentChange?.(preset.preserveEnvironment);
+                    }
+                  }}
+                  className={`w-28 sm:w-32 flex-shrink-0 p-2 sm:p-2.5 rounded-xl border text-left transition-all active:scale-95 flex flex-col justify-between gap-1.5 ${
+                    isSelected
+                      ? 'border-white bg-zinc-800/90 text-white shadow-md ring-1 ring-white/20'
+                      : 'border-zinc-800/80 bg-zinc-900/50 hover:bg-zinc-900 hover:border-zinc-700 text-zinc-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-lg leading-none" role="img" aria-label={preset.name}>
+                      {preset.icon || '✨'}
+                    </span>
+                    {isSelected && (
+                      <div className="w-3.5 h-3.5 rounded-full bg-white text-black flex items-center justify-center flex-shrink-0 shadow">
+                        <Check size={9} className="stroke-[3]" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-zinc-100 block truncate">
+                      {preset.name}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-mono capitalize block truncate">
+                      {preset.category}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0.3"
-                    max="1.0"
-                    step="0.05"
-                    value={likeness}
-                    onChange={(e) => onLikenessChange(parseFloat(e.target.value))}
-                    aria-label="Identity retention"
-                    className="w-full accent-white cursor-pointer h-1.5 bg-zinc-800 rounded-lg"
-                  />
-                  <div className="flex justify-between text-[9px] font-mono text-zinc-500 mt-0.5">
-                    <span>FLEXIBLE</span>
-                    <span>STRICT</span>
-                  </div>
-                </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <label className="flex items-center gap-1.5 text-zinc-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={preservePose && preserveBody}
-                      onChange={(e) => {
-                        const val = e.target.checked;
-                        onPreservePoseChange?.(val);
-                        onPreserveBodyChange?.(val);
-                      }}
-                      className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 focus:ring-offset-0"
-                    />
-                    <span>Lock Body Pose</span>
-                  </label>
+        {/* Prompt Direction Box */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="persona-prompt"
+              className="text-xs font-semibold text-zinc-300"
+            >
+              Creative Direction
+            </label>
 
-                  <label className="flex items-center gap-1.5 text-zinc-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={preserveEnvironment}
-                      onChange={(e) => onPreserveEnvironmentChange?.(e.target.checked)}
-                      className="rounded bg-zinc-800 border-zinc-700 text-white focus:ring-0 focus:ring-offset-0"
-                    />
-                    <span>Preserve Background</span>
-                  </label>
-                </div>
+            <button
+              type="button"
+              onClick={handleEnhance}
+              disabled={isEnhancing || !prompt.trim()}
+              className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 px-2.5 py-1 rounded-lg transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+              title="Expand with photographic lighting & fabric details"
+            >
+              {isEnhancing ? (
+                <>
+                  <Loader2 size={12} className="animate-spin text-zinc-300" />
+                  <span>Enhancing…</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={12} className="text-zinc-300" />
+                  <span>Enhance</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <textarea
+            id="persona-prompt"
+            rows={3}
+            value={prompt}
+            onChange={(e) => {
+              onPromptChange(e.target.value);
+              if (selectedPreset !== 'custom') {
+                onSelectPreset({ id: 'custom', name: 'Custom' });
+              }
+            }}
+            placeholder="Describe attire, background, lighting, or atmosphere (e.g. Bespoke navy tailored suit with white collared dress shirt, pure white studio background)..."
+            className="w-full px-3 py-2 sm:py-2.5 bg-zinc-900/90 border border-zinc-800 focus:border-zinc-500 rounded-xl sm:rounded-2xl text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none transition-colors resize-none leading-relaxed font-sans"
+          />
+        </div>
+
+        {/* Collapsible Refinements: Modifiers & Negative Exclusions */}
+        <div className="space-y-2 pt-0.5">
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowModifiers((prev) => !prev)}
+              className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 py-0.5"
+            >
+              <Tag size={11} />
+              <span>{showModifiers ? 'Hide Photography Modifiers' : '+ Photography Modifiers'}</span>
+            </button>
+
+            {showModifiers && (
+              <div className="flex flex-wrap gap-1.5 pt-1.5 animate-in fade-in duration-150">
+                {STYLE_TAGS.map((tag) => {
+                  const isApplied = prompt.toLowerCase().includes(tag.toLowerCase());
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleToggleTag(tag)}
+                      className={`px-2 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-95 ${
+                        isApplied
+                          ? 'border-zinc-400 bg-zinc-800 text-white font-semibold'
+                          : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                      }`}
+                    >
+                      {isApplied ? '✓ ' : '+ '}
+                      {tag}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
-        ) : (
-          <div className="px-3 py-2 bg-zinc-900/30 border border-zinc-850 rounded-2xl flex items-center justify-between text-[11px] text-zinc-400">
-            <span className="truncate">Generating pure persona from prompt</span>
-            <span className="text-zinc-500 font-mono text-[10px]">Photo Detached</span>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowNegative((prev) => !prev)}
+              className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 py-0.5"
+            >
+              <ChevronDown
+                size={12}
+                className={`transition-transform duration-150 ${showNegative ? 'rotate-180' : ''}`}
+              />
+              <span>Negative Exclusions (Suppress Details)</span>
+            </button>
+
+            {showNegative && (
+              <div className="pt-1.5 animate-in fade-in duration-150">
+                <input
+                  type="text"
+                  value={negativePrompt}
+                  onChange={(e) => onNegativePromptChange(e.target.value)}
+                  placeholder="Features to suppress (e.g. blurry, oversaturated, deformed hands)..."
+                  aria-label="Negative prompt"
+                  className="w-full px-3 py-1.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 font-sans"
+                />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* 4. Docked / Sticky Primary CTA Action Footer */}
-      <div className="sticky bottom-0 pt-2.5 pb-0.5 bg-zinc-950/95 backdrop-blur-md border-t border-zinc-900 flex-shrink-0 z-10 space-y-2">
-        {/* Error alert */}
+      {/* 3. Primary CTA Action Footer */}
+      <div className="pt-2 sm:pt-3 bg-zinc-950/95 border-t border-zinc-900 flex-shrink-0 z-10 space-y-2">
         {error && (
           <div
             role="alert"
@@ -487,12 +494,11 @@ export default function PromptPanel({
           </div>
         )}
 
-        {/* Generate Action Button */}
         <button
           type="button"
           disabled={disabled}
           onClick={onGenerate}
-          className={`w-full min-h-[48px] sm:min-h-[50px] py-3 px-5 rounded-2xl font-bold text-xs sm:text-sm tracking-wide uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg ${
+          className={`w-full min-h-[46px] sm:min-h-[48px] py-2.5 sm:py-3 px-5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm tracking-wide uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg ${
             disabled
               ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800'
               : isGenerating
@@ -504,7 +510,6 @@ export default function PromptPanel({
           {!disabled && !isGenerating && <ArrowRight size={15} />}
         </button>
 
-        {/* Footer Sub-links (Key Access) */}
         <div className="flex items-center justify-between px-1 text-[11px] text-zinc-500">
           <button
             type="button"
@@ -514,12 +519,11 @@ export default function PromptPanel({
             <KeyRound size={11} className={apiKey ? 'text-emerald-400' : 'text-zinc-500'} />
             <span>{apiKey ? `Key Connected (${maskApiKey(apiKey)})` : 'Pollinations Key'}</span>
           </button>
-          <span className="text-[10px] font-mono text-zinc-600">FLUX.1 KONTEXT PRO</span>
+          <span className="text-[10px] font-mono text-zinc-600">FLUX.1 Kontext</span>
         </div>
 
-        {/* Expandable Key Drawer */}
         {showAccess && (
-          <div className="p-3 bg-zinc-900/90 border border-zinc-800 rounded-2xl space-y-2 animate-in slide-in-from-bottom-2 duration-150">
+          <div className="p-3 bg-zinc-900/90 border border-zinc-800 rounded-xl sm:rounded-2xl space-y-2 animate-in slide-in-from-bottom-2 duration-150">
             <p className="text-xs text-zinc-400 leading-relaxed">
               Adding a Pollinations API key enables direct high-speed FLUX.1 Kontext Pro editing without queue limits.
             </p>

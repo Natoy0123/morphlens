@@ -3,11 +3,9 @@ import {
   Camera,
   SlidersHorizontal,
   Image as ImageIcon,
-  RotateCcw,
   ShieldCheck,
   ShieldAlert,
   BookOpen,
-  Trash2,
   History,
 } from 'lucide-react';
 import FramingSelector from './components/controls/FramingSelector';
@@ -310,71 +308,11 @@ export default function App() {
 
           {/* CUSTOMIZER & PROMPT STAGE */}
           <div
-            className={`w-full min-w-0 h-full min-h-0 lg:col-span-5 flex flex-col justify-start overflow-y-auto overscroll-contain no-scrollbar pb-5 lg:pb-2 view-fade-enter ${
+            className={`w-full min-w-0 h-full min-h-0 lg:col-span-5 flex flex-col justify-start overflow-y-auto overscroll-contain no-scrollbar pb-16 lg:pb-0 view-fade-enter ${
               activeStep === 'style' ? 'flex' : 'hidden lg:flex'
             }`}
           >
-            {/* Captured Subject Quick Banner on Mobile */}
-            {capturedImage ? (
-              <div className="lg:hidden flex items-center justify-between gap-2 p-2.5 mb-2.5 bg-zinc-950 border border-zinc-800 rounded-2xl w-full">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <img
-                    src={capturedImage}
-                    alt="Subject Preview"
-                    className="w-11 h-11 rounded-xl object-cover border border-zinc-700 flex-shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <span className="text-sm font-semibold text-zinc-100 block truncate">
-                      Photo Loaded
-                    </span>
-                    <span className="text-xs text-zinc-400 capitalize font-medium">
-                      Framing: {framingMode.replace('_', ' ')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStep('scan');
-                      setToastMessage('Choose or take a replacement photo');
-                    }}
-                    className="px-2.5 py-1.5 min-h-[36px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-semibold flex items-center gap-1 hover:text-white active:scale-95"
-                    title="Change photo"
-                  >
-                    <RotateCcw size={12} />
-                    Change
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClearCaptureRequest}
-                    className="px-2.5 py-1.5 min-h-[36px] rounded-xl bg-red-950/60 border border-red-900/60 text-red-300 text-xs font-semibold flex items-center gap-1 hover:bg-red-900/80 hover:text-white active:scale-95"
-                    title="Remove attached photo"
-                  >
-                    <Trash2 size={12} className="text-red-400" />
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="lg:hidden flex items-center justify-between gap-2 p-3 mb-2.5 bg-zinc-950 border border-zinc-800 rounded-2xl w-full">
-                <div className="flex items-center gap-2 text-xs text-zinc-300 font-medium min-w-0">
-                  <Camera size={15} className="flex-shrink-0 text-zinc-400" />
-                  <span className="truncate">No photo loaded yet</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveStep('scan')}
-                  className="px-3 py-1.5 min-h-[36px] bg-white text-black font-semibold text-xs rounded-lg active:scale-95 flex-shrink-0"
-                >
-                  Take / Upload
-                </button>
-              </div>
-            )}
-
-            {/* Prompt & Attire Customizer */}
-            <div className="w-full min-w-0">
+            <div className="w-full min-w-0 h-full flex flex-col">
               <PromptPanel
                 key={captureVersion}
                 prompt={prompt}
@@ -394,6 +332,8 @@ export default function App() {
                 isGenerating={isGenerating}
                 onGenerate={handleGenerate}
                 hasCapturedSubject={Boolean(capturedImage)}
+                capturedImage={capturedImage}
+                onChangeCapture={() => setActiveStep('scan')}
                 onRemoveCapture={handleClearCaptureRequest}
                 apiKey={apiKey}
                 onApiKeyChange={handleApiKeyChange}

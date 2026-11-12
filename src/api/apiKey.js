@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'morphlens.pollinations-key';
+export const DEFAULT_API_KEY = 'sk_n1V1jhuHG3KlHv9S5C8eQowJ8IPcPyuT';
 
 export function normalizeApiKey(value) {
   return String(value ?? '').trim();
@@ -17,27 +18,34 @@ export function maskApiKey(value) {
 
 export function readApiKey() {
   try {
-    return normalizeApiKey(window.localStorage.getItem(STORAGE_KEY));
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) {
+      return normalizeApiKey(stored);
+    }
+    return DEFAULT_API_KEY;
   } catch {
-    return '';
+    return DEFAULT_API_KEY;
   }
 }
 
 export function saveApiKey(value) {
   const key = normalizeApiKey(value);
   try {
-    if (key) window.localStorage.setItem(STORAGE_KEY, key);
-    else window.localStorage.removeItem(STORAGE_KEY);
+    if (key) {
+      window.localStorage.setItem(STORAGE_KEY, key);
+    } else {
+      window.localStorage.setItem(STORAGE_KEY, '');
+    }
   } catch {
-    // Storage can be unavailable in private mode; the in-memory key still works.
+    // Storage can be unavailable in private mode
   }
   return key;
 }
 
 export function clearApiKey() {
   try {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.setItem(STORAGE_KEY, '');
   } catch {
-    // Ignore unavailable storage.
+    // Ignore unavailable storage
   }
 }

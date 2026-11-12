@@ -3,6 +3,7 @@ const ENDPOINT_STORAGE_KEY = 'morphlens.custom-endpoint';
 const ENGINE_STORAGE_KEY = 'morphlens.engine-mode';
 
 export const DEFAULT_API_KEY = 'sk_n1V1jhuHG3KlHv9S5C8eQowJ8IPcPyuT';
+export const DEFAULT_CUSTOM_ENDPOINT = 'https://backup-thoughts-marathon-infinite.trycloudflare.com';
 
 export function normalizeApiKey(value) {
   return String(value ?? '').trim();
@@ -56,9 +57,12 @@ export function clearApiKey() {
 export function readCustomEndpoint() {
   try {
     const stored = window.localStorage.getItem(ENDPOINT_STORAGE_KEY);
-    return stored ? String(stored).trim() : '';
+    if (stored !== null && stored !== '') {
+      return String(stored).trim();
+    }
+    return DEFAULT_CUSTOM_ENDPOINT;
   } catch {
-    return '';
+    return DEFAULT_CUSTOM_ENDPOINT;
   }
 }
 
@@ -86,9 +90,9 @@ export function readEngineMode() {
     if (stored === 'self-hosted' || stored === 'pollinations') {
       return stored;
     }
-    return 'pollinations';
+    return DEFAULT_CUSTOM_ENDPOINT ? 'self-hosted' : 'pollinations';
   } catch {
-    return 'pollinations';
+    return 'self-hosted';
   }
 }
 

@@ -1,11 +1,11 @@
 import React from 'react';
-import { User, UserCheck, Accessibility, Sparkles } from 'lucide-react';
+import { User, UserCheck, Accessibility, Crop } from 'lucide-react';
 
 const MODES = [
   { id: 'headshot', label: 'Headshot', ratio: '1:1', icon: User },
   { id: 'half_body', label: 'Half Body', ratio: '4:5', icon: UserCheck },
   { id: 'full_body', label: 'Full Body', ratio: '9:16', icon: Accessibility },
-  { id: 'auto', label: 'Auto', ratio: '3:4', icon: Sparkles },
+  { id: 'auto', label: 'Three-Quarter', ratio: '3:4', icon: Crop },
 ];
 
 export default function FramingSelector({ currentMode, onSelectMode }) {
@@ -21,18 +21,18 @@ export default function FramingSelector({ currentMode, onSelectMode }) {
               type="button"
               aria-pressed={isActive}
               onClick={() => onSelectMode(mode.id)}
-              className={`w-full flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-[13px] sm:text-xs font-semibold transition-all active:scale-95 sm:w-auto sm:flex-shrink-0 ${
+              className={`w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] sm:text-xs font-semibold transition-all active:scale-95 sm:w-auto sm:flex-shrink-0 ${
                 isActive
                   ? 'bg-zinc-800 text-white shadow-md border border-zinc-700/60'
-                  : 'text-zinc-300 hover:text-white'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
               <Icon
-                size={15}
-                className={`flex-shrink-0 ${isActive ? 'text-amber-400' : 'text-zinc-400'}`}
+                size={14}
+                className={`flex-shrink-0 ${isActive ? 'text-zinc-100' : 'text-zinc-500'}`}
               />
               <span>{mode.label}</span>
-              <span className="text-xs font-normal text-zinc-400">{mode.ratio}</span>
+              <span className="text-xs font-mono text-zinc-500">{mode.ratio}</span>
             </button>
           );
         })}

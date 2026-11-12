@@ -1,10 +1,21 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Download, RotateCcw, Sparkles, Fingerprint } from 'lucide-react';
+import { AlertTriangle, Download, RotateCcw, Fingerprint, KeyRound, CheckCircle2 } from 'lucide-react';
+
+function modelLabel(model) {
+  if (!model) return 'UNKNOWN MODEL';
+  if (model.includes('kontext-pro')) return 'FLUX.1 KONTEXT PRO';
+  if (model.includes('klein')) return 'FLUX.2 KLEIN 4B';
+  if (model.includes('classic')) return 'POLLINATIONS SANA';
+  return model.replace('black-forest-labs/', '').toUpperCase();
+}
 
 export default function BeforeAfterSlider({
   originalImage,
   generatedImage,
   identityUsed = false,
+  model = '',
+  promptUsed = '',
+  onConnectKey,
   onReset,
 }) {
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -136,12 +147,12 @@ export default function BeforeAfterSlider({
           </div>
         </div>
 
-        {/* Camera Labels */}
-        <div className="absolute top-3 left-3 bg-black/75 border border-zinc-700 text-zinc-200 text-xs font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
-          INPUT SCAN
+        {/* Reference and Result Labels */}
+        <div className="absolute top-3 left-3 bg-black/80 border border-zinc-700 text-zinc-200 text-xs font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
+          REFERENCE
         </div>
         <div
-          className={`absolute top-3 right-3 bg-black/75 border text-xs font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1 ${
+          className={`absolute top-3 right-3 bg-black/80 border text-xs font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1.5 ${
             identityUsed
               ? 'border-emerald-500/40 text-emerald-300'
               : 'border-amber-500/40 text-amber-300'
@@ -150,32 +161,75 @@ export default function BeforeAfterSlider({
           {identityUsed ? (
             <Fingerprint size={12} className="text-emerald-400 flex-shrink-0" />
           ) : (
-            <Sparkles size={12} className="text-amber-400 flex-shrink-0" />
+            <CheckCircle2 size={12} className="text-amber-400 flex-shrink-0" />
           )}
-          {identityUsed ? 'PHOTO CONDITIONED' : 'PROMPT-ONLY RENDER'}
+          {identityUsed ? 'PHOTO CONDITIONED' : 'PROMPT RENDER'}
         </div>
       </div>
 
-      {/* Action Controls Deck */}
-      <div className="flex gap-3 w-full pt-1">
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="flex-1 min-h-[52px] py-3.5 sm:py-4 px-3 sm:px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md whitespace-nowrap"
-        >
-          <Download size={16} className="flex-shrink-0" />
-          <span className="sm:hidden">DOWNLOAD</span>
-          <span className="hidden sm:inline">DOWNLOAD PORTRAIT</span>
-        </button>
+      {/* Result diagnostics + actions */}
+      <div className="flex flex-col gap-2.5 w-full pt-1">
+        {!identityUsed && (
+          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/40 bg-amber-950/25 text-amber-100">
+            <AlertTriangle size={17} className="text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold">Your photo was not used for this render.</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-amber-200/90">
+                Text-only generation cannot copy a face, so this person is a prompt invention.
+                Connect a key and regenerate to use your photo as the identity reference.
+              </p>
+              {onConnectKey && (
+                <button
+                  type="button"
+                  onClick={onConnectKey}
+                  className="mt-2 min-h-[38px] px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold inline-flex items-center gap-1.5 active:scale-95"
+                >
+                  <KeyRound size={13} />
+                  CONNECT KEY / USE MY PHOTO
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
-        <button
-          type="button"
-          onClick={onReset}
-          className="min-h-[52px] py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-semibold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-98"
-        >
-          <RotateCcw size={15} />
-          EDIT PROMPT
-        </button>
+        <div className="flex items-center justify-between gap-2 px-1 text-xs font-mono text-zinc-400">
+          <span className="truncate">{modelLabel(model)}</span>
+          <span className={identityUsed ? 'text-emerald-400' : 'text-amber-400'}>
+            {identityUsed ? 'PHOTO REFERENCE SENT' : 'TEXT ONLY'}
+          </span>
+        </div>
+
+        {promptUsed && (
+          <details className="px-1 text-xs text-zinc-500">
+            <summary className="cursor-pointer font-mono uppercase tracking-wide hover:text-zinc-300">
+              Prompt used
+            </summary>
+            <p className="mt-1.5 max-h-28 overflow-y-auto p-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 leading-relaxed break-words">
+              {promptUsed}
+            </p>
+          </details>
+        )}
+
+        <div className="flex gap-3 w-full">
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="flex-1 min-h-[52px] py-3.5 sm:py-4 px-3 sm:px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md whitespace-nowrap"
+          >
+            <Download size={16} className="flex-shrink-0" />
+            <span className="sm:hidden">DOWNLOAD</span>
+            <span className="hidden sm:inline">DOWNLOAD PORTRAIT</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onReset}
+            className="min-h-[52px] py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-semibold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-98"
+          >
+            <RotateCcw size={15} />
+            EDIT PROMPT
+          </button>
+        </div>
       </div>
     </div>
   );

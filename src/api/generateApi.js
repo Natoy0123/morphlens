@@ -16,9 +16,11 @@ import { buildPrompt, PromptValidationError } from './promptBuilder.js';
 const GEN_BASE = 'https://gen.pollinations.ai';
 const CLASSIC_BASE = 'https://image.pollinations.ai/prompt';
 
+// Kontext Pro is the edit-specialized model and preserves identity better;
+// Klein 4B is the cheaper fallback that also accepts reference images.
 const EDIT_MODELS = [
-  'black-forest-labs/flux.2-klein-4b',
   'black-forest-labs/flux.1-kontext-pro',
+  'black-forest-labs/flux.2-klein-4b',
 ];
 
 const GEN_TIMEOUT_MS = 150_000;
@@ -43,6 +45,36 @@ export { PromptValidationError };
 
 export function classicCooldownRemaining() {
   return Math.max(0, Math.ceil((classicCooldownUntil - Date.now()) / 1000));
+}
+
+/**
+ * Check a key against the provider before storing it. Format checks alone
+ * cannot tell a working key from an expired or revoked one.
+ */
+export async function validateApiKey(apiKey) {
+  const key = String(apiKey || '').trim();
+  if (!key) {
+    throw new SynthesisError('Paste a Pollinations API key first.', { code: 'INVALID_KEY' });
+  }
+
+  // `/image/models` is public and returns 200 even for a fake key. The
+  // account endpoint is the actual validity check.
+  const response = await fetchWithTimeout(
+    `${GEN_BASE}/account/key`,
+    { headers: { Authorization: `Bearer ${key}` } },
+    15_000
+  );
+
+  if (response.status === 401 || response.status === 403) {
+    throw new SynthesisError(
+      'Pollinations rejected this key. Create or copy a fresh key from enter.pollinations.ai.',
+      { code: 'INVALID_KEY', status: response.status }
+    );
+  }
+  if (!response.ok) {
+    throw await providerError(response, { mode: 'key' });
+  }
+  return true;
 }
 
 async function fetchWithTimeout(url, options, timeoutMs) {
@@ -224,6 +256,11 @@ async function prepareReferenceImage(source) {
       code: 'INVALID_IMAGE',
     });
   }
+  if (Math.min(sourceWidth, sourceHeight) < 64) {
+    throw new SynthesisError('That photo is too small to use as an identity reference. Use a larger image.', {
+      code: 'INVALID_IMAGE',
+    });
+  }
 
   // Always re-encode: this caps giant uploads, normalizes the format, and
   // strips EXIF/GPS metadata before the photo leaves the browser.
@@ -238,21 +275,51 @@ async function prepareReferenceImage(source) {
       code: 'INVALID_IMAGE',
     });
   }
+  // JPEG has no alpha channel; fill first so transparent uploads do not turn
+  // into a black square behind the subject.
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', 0.9);
+
+  const blob = await new Promise((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', 0.9);
+  });
+  if (!blob) {
+    throw new SynthesisError('The captured photo could not be prepared. Retake or upload another photo.', {
+      code: 'INVALID_IMAGE',
+    });
+  }
+  return blob;
 }
 
-async function requestGenImage({ apiKey, model, body }) {
+async function requestGenImage({ apiKey, model, body, referenceBlob }) {
+  const endpoint = referenceBlob ? 'edits' : 'generations';
+  const options = {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}` },
+  };
+
+  if (referenceBlob) {
+    // The documented edits path is multipart. It avoids shipping a huge base64
+    // JSON body and gives the provider a real image file to decode.
+    const form = new FormData();
+    form.append('model', model);
+    form.append('prompt', body.prompt);
+    form.append('n', String(body.n));
+    form.append('size', body.size);
+    form.append('seed', String(body.seed));
+    form.append('response_format', body.response_format);
+    if (body.negative_prompt) form.append('negative_prompt', body.negative_prompt);
+    form.append('image', referenceBlob, 'reference.jpg');
+    options.body = form;
+  } else {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify({ ...body, model });
+  }
+
   const response = await fetchWithTimeout(
-    `${GEN_BASE}/v1/images/${body.image ? 'edits' : 'generations'}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ ...body, model }),
-    },
+    `${GEN_BASE}/v1/images/${endpoint}`,
+    options,
     GEN_TIMEOUT_MS
   );
 
@@ -289,7 +356,7 @@ async function requestGenImage({ apiKey, model, body }) {
   });
 }
 
-async function generateWithKey({ apiKey, prompt, negativePrompt, referenceImage, width, height, seed }) {
+async function generateWithKey({ apiKey, prompt, negativePrompt, referenceBlob, width, height, seed }) {
   const body = {
     prompt,
     n: 1,
@@ -298,15 +365,18 @@ async function generateWithKey({ apiKey, prompt, negativePrompt, referenceImage,
     response_format: 'b64_json',
   };
   if (negativePrompt) body.negative_prompt = negativePrompt;
-  if (referenceImage) body.image = referenceImage;
 
   let lastModelError = null;
   for (const model of EDIT_MODELS) {
+    const isLastModel = model === EDIT_MODELS[EDIT_MODELS.length - 1];
     try {
-      const url = await requestGenImage({ apiKey, model, body });
+      const url = await requestGenImage({ apiKey, model, body, referenceBlob });
       return { url, model };
     } catch (error) {
-      if (isModelError(error) && model !== EDIT_MODELS[EDIT_MODELS.length - 1]) {
+      // A cheaper model may still work when the preferred one is unavailable
+      // or out of pollen. Content/safety rejections are never retried.
+      const canFallback = isModelError(error) || error?.code === 'PAYMENT_REQUIRED';
+      if (canFallback && !isLastModel) {
         lastModelError = error;
         continue;
       }
@@ -316,13 +386,48 @@ async function generateWithKey({ apiKey, prompt, negativePrompt, referenceImage,
   throw lastModelError;
 }
 
-async function generateClassic({ prompt, negativePrompt, width, height, seed }) {
+/**
+ * Upload reference image blob to temporary storage so the classic endpoint
+ * can consume the image reference URL.
+ */
+export async function uploadReferenceToPublicHost(blob) {
+  if (!blob) return null;
+  try {
+    const form = new FormData();
+    form.append('reqtype', 'fileupload');
+    form.append('time', '1h');
+    form.append('fileToUpload', blob, 'ref.jpg');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12_000);
+    const res = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
+      method: 'POST',
+      body: form,
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
+
+    if (res.ok) {
+      const url = (await res.text()).trim();
+      if (url.startsWith('http')) return url;
+    }
+  } catch (err) {
+    console.warn('Reference image upload fallback:', err);
+  }
+  return null;
+}
+
+async function generateClassic({ prompt, negativePrompt, width, height, seed, referenceBlob }) {
   const cooldown = classicCooldownRemaining();
   if (cooldown > 0) {
     throw new SynthesisError(
-      `Free tier cooling down. Retry in ${cooldown}s, or add a Pollinations key for reliable renders.`,
+      `Free tier cooling down. Retry in ${cooldown}s, or add a Pollinations key for instant renders.`,
       { code: 'RATE_LIMITED', retryAfter: cooldown }
     );
+  }
+
+  let referenceUrl = null;
+  if (referenceBlob) {
+    referenceUrl = await uploadReferenceToPublicHost(referenceBlob);
   }
 
   const params = new URLSearchParams({
@@ -332,6 +437,10 @@ async function generateClassic({ prompt, negativePrompt, width, height, seed }) 
     nologo: 'true',
     enhance: 'false',
   });
+  if (referenceUrl) {
+    params.set('image', referenceUrl);
+    params.set('model', 'flux');
+  }
   if (negativePrompt) params.set('negative_prompt', negativePrompt);
 
   const url = `${CLASSIC_BASE}/${encodeURIComponent(prompt)}?${params.toString()}`;
@@ -345,7 +454,8 @@ async function generateClassic({ prompt, negativePrompt, width, height, seed }) 
     throw await providerError(response, { mode: 'classic' });
   }
 
-  return blobUrlFromResponse(response);
+  const outputUrl = await blobUrlFromResponse(response);
+  return { url: outputUrl, identityUsed: Boolean(referenceUrl) };
 }
 
 /**
@@ -360,8 +470,12 @@ export async function synthesizePersona({
   apiKey = '',
   styleId = '',
   seed = null,
+  preserveBody = true,
+  preservePose = true,
+  preserveEnvironment = false,
 }) {
   const hasKey = Boolean(String(apiKey || '').trim());
+  const hasImage = Boolean(capturedImage);
 
   const built = buildPrompt({
     prompt,
@@ -369,45 +483,47 @@ export async function synthesizePersona({
     styleId,
     negativePrompt,
     likeness,
-    useIdentity: hasKey && Boolean(capturedImage),
+    useIdentity: hasImage,
+    preserveBody,
+    preservePose,
+    preserveEnvironment,
   });
 
   const activeSeed = Number.isInteger(seed) ? seed : Math.floor(Math.random() * 2_000_000_000);
+  const referenceBlob = hasImage ? await prepareReferenceImage(capturedImage) : null;
 
   if (hasKey) {
-    const referenceImage = built.useIdentity
-      ? await prepareReferenceImage(capturedImage)
-      : null;
     const result = await generateWithKey({
       apiKey: String(apiKey).trim(),
       prompt: built.prompt,
       negativePrompt: built.negativePrompt,
-      referenceImage,
+      referenceBlob,
       width: built.width,
       height: built.height,
       seed: activeSeed,
     });
     return {
       url: result.url,
-      identityUsed: Boolean(referenceImage),
+      identityUsed: Boolean(referenceBlob),
       model: result.model,
       promptUsed: built.prompt,
     };
   }
 
   const classicSize = classicDimensions(built.width, built.height);
-  const url = await generateClassic({
+  const result = await generateClassic({
     prompt: built.prompt,
     negativePrompt: built.negativePrompt,
     width: classicSize.width,
     height: classicSize.height,
     seed: activeSeed,
+    referenceBlob,
   });
 
   return {
-    url,
-    identityUsed: false,
-    model: 'pollinations-classic',
+    url: result.url,
+    identityUsed: result.identityUsed,
+    model: result.identityUsed ? 'flux-image-conditioned' : 'pollinations-classic',
     promptUsed: built.prompt,
   };
 }

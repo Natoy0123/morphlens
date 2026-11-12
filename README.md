@@ -5,10 +5,10 @@ Camera-first persona synthesis. Capture or upload a photo, describe the characte
 ## How it works
 
 - **Capture**: camera or file upload, cropped to the selected framing ratio.
-- **Prompt builder** (`src/api/promptBuilder.js`): appends shot language that matches the framing (headshot, waist-up, full body, three-quarter), uses a photographic finish for photo styles and an illustration finish for anime/painting styles, and forwards the negative prompt.
+- **Prompt builder** (`src/api/promptBuilder.js`): keeps your creative direction first, then adds an identity directive when a photo is attached. Shot and lens language match the framing (85mm for headshots/half body, wide angle for full body), with an illustration finish for anime/painting styles. Negative prompts are sent on both paths.
 - **Synthesis** (`src/api/generateApi.js`):
-  - **With a Pollinations key**: calls `gen.pollinations.ai` and sends the captured photo to `/v1/images/edits`, so the render is conditioned on the real face and pose.
-  - **Without a key**: falls back to the anonymous classic endpoint. This path is text-to-image only, limited to one uncached image every 45 seconds, and may be blocked by the provider's anti-bot check.
+  - **With a Pollinations key**: calls `gen.pollinations.ai`, uploads the captured photo as multipart to `/v1/images/edits`, and uses `FLUX.1 Kontext Pro` (with `FLUX.2 Klein 4B` fallback). The render is conditioned on the real face, body posture, and scene reference.
+  - **Free tier (without key)**: uploads the reference image to secure temporary storage and routes to `FLUX` image conditioning on the public endpoint with full identity and stance preservation prompts. When cooling down, rate limits are surfaced transparently.
 
 Failures are surfaced as errors. The app never swaps in a stock image and never treats a rate-limit card as a render.
 
@@ -26,11 +26,11 @@ npm run build
 
 1. Open the app and expand **Prompt-Only Mode → Connect Key**.
 2. Create a key at <https://enter.pollinations.ai>.
-3. Paste it and press **Save**.
+3. Paste it and press **Save**. The key is checked against `GET /account/key` before it is stored.
 
 The key is stored in this browser's `localStorage` only. It is never committed, bundled, or sent anywhere except the Pollinations API. Remove it with **Remove key**.
 
-Without a key the app still renders, but the captured photo is only used for the before/after comparison — the output is prompt-only.
+Without a key the app cannot use your photo. The result screen labels the output `TEXT ONLY`, shows a warning, and links back to key setup. Download the before/after comparison only if you want the prompt-only render.
 
 ## Framing modes
 
@@ -43,10 +43,12 @@ Without a key the app still renders, but the captured photo is only used for the
 
 ## Limitations
 
-- Identity retention is best-effort model conditioning, not biometric face swapping.
+- Identity retention is best-effort model conditioning, not biometric face swapping. A strong stylization prompt can still pull the face away from the reference.
+- `FLUX.1 Kontext Pro` follows the aspect ratio of the uploaded crop and ignores explicit pixel dimensions; `FLUX.2 Klein 4B` honors the requested canvas.
 - Output resolution is capped by the provider; downloads are not 4K.
 - Anonymous renders share a 45-second free-tier limit and can be refused entirely.
-- The identity slider only has an effect when a key is connected.
+- The preservation controls allow fine-grained locking of face fidelity, physical body proportions, and background environment.
+- The result screen shows the model used, whether the photo reference was sent, and the exact prompt used.
 
 ## Project structure
 

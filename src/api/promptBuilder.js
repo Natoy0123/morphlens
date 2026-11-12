@@ -38,10 +38,28 @@ export const FRAMING_PROFILES = {
   },
 };
 
-const PHOTO_FINISH =
-  'photorealistic photography, 85mm lens, shallow depth of field, natural skin texture, sharp focus, highly detailed';
 const ART_FINISH =
   'highly detailed, crisp linework, cinematic composition, sharp focus';
+
+/**
+ * Lens language has to agree with the framing. Asking for an 85mm portrait
+ * lens while also asking for a head-to-toe shot pulls the model back toward a
+ * waist-up composition, which is one reason framing used to be ignored.
+ */
+function photoFinish(framingKey, base) {
+  const parts = ['photorealistic photography'];
+  if (framingKey === 'full_body') {
+    if (!/\bwide[- ]angle\b/i.test(base)) parts.push('wide angle');
+    parts.push('full-body editorial framing');
+  } else if (!/\b(?:85mm|50mm|35mm|24mm)\b/i.test(base)) {
+    parts.push('85mm lens');
+  }
+  if (framingKey === 'headshot' && !/shallow depth of field/i.test(base)) {
+    parts.push('shallow depth of field');
+  }
+  parts.push('natural skin texture, sharp focus, highly detailed');
+  return parts.join(', ');
+}
 
 const ART_STYLE_PATTERN =
   /anime|manga|illustration|painting|painterly|cel[- ]?shad|comic|cartoon|watercolou?r/i;
@@ -84,15 +102,43 @@ function cleanNegativePrompt(value) {
   );
 }
 
-function identityDirective(likeness) {
+function identityDirective(likeness, { preserveBody = true, preservePose = true, preserveEnvironment = false } = {}) {
   const value = Number.isFinite(likeness) ? likeness : 0.85;
+  const directives = [];
+
   if (value >= 0.8) {
-    return "Keep the exact same face, facial features, hairstyle, skin tone, body build, and pose from the reference photo.";
+    directives.push(
+      'Preserve the exact same face, facial features, hairstyle, skin tone, body build, and pose from the reference photo. Do not generate a different person.'
+    );
+  } else if (value >= 0.55) {
+    directives.push(
+      "Preserve the same face and general body proportions from the reference photo while restyling the outfit and environment. Do not change the person's identity."
+    );
+  } else {
+    directives.push(
+      'Use the reference photo only for pose and framing; reimagine the face and styling.'
+    );
   }
-  if (value >= 0.55) {
-    return 'Keep the same face and general body proportions from the reference photo while restyling the outfit and environment.';
+
+  if (preservePose && value >= 0.55) {
+    directives.push(
+      'Maintain the exact physical body position, head angle, posture, and stance of the person in the reference image.'
+    );
   }
-  return 'Use the reference photo only for pose and framing, and reimagine the face and styling.';
+
+  if (preserveBody && value >= 0.55) {
+    directives.push(
+      'Maintain the exact physical body proportions, silhouette, and build from the reference image.'
+    );
+  }
+
+  if (preserveEnvironment) {
+    directives.push(
+      'Maintain the exact background environment, room surroundings, and scene lighting from the reference image.'
+    );
+  }
+
+  return directives.join(' ');
 }
 
 /**
@@ -105,6 +151,9 @@ function identityDirective(likeness) {
  * @param {string} [input.negativePrompt]
  * @param {number} [input.likeness] 0..1 identity retention weight
  * @param {boolean} [input.useIdentity] true only when the provider receives the photo
+ * @param {boolean} [input.preserveBody] lock physical body proportions and build
+ * @param {boolean} [input.preservePose] lock exact body stance and posture
+ * @param {boolean} [input.preserveEnvironment] lock background environment and scene
  */
 export function buildPrompt({
   prompt,
@@ -113,6 +162,9 @@ export function buildPrompt({
   negativePrompt = '',
   likeness = 0.85,
   useIdentity = false,
+  preserveBody = true,
+  preservePose = true,
+  preserveEnvironment = false,
 }) {
   const base = truncate(collapseWhitespace(prompt), MAX_PROMPT_LENGTH);
   if (!base) {
@@ -123,15 +175,33 @@ export function buildPrompt({
 
   const profile = FRAMING_PROFILES[framingMode] || FRAMING_PROFILES.headshot;
   const trimmedBase = base.replace(/[,\s.;:]+$/, '');
-  const subject = useIdentity
-    ? `Transform the person in the reference photo. ${identityDirective(likeness)} ${trimmedBase}`
-    : trimmedBase;
+  const artStyle = isArtStyle(trimmedBase, styleId);
+  const identityWeight = Number.isFinite(likeness) ? likeness : 0.85;
 
-  const segments = [subject];
+  // Keep the user's creative direction first so the model does not treat the
+  // identity instruction as the whole scene description.
+  const segments = [trimmedBase];
+  if (useIdentity) {
+    segments.push(
+      identityDirective(likeness, { preserveBody, preservePose, preserveEnvironment })
+    );
+  }
   if (!profile.shotPattern.test(trimmedBase)) {
     segments.push(profile.shot);
   }
-  segments.push(isArtStyle(trimmedBase, styleId) ? ART_FINISH : PHOTO_FINISH);
+  segments.push(artStyle ? ART_FINISH : photoFinish(profile.key, trimmedBase));
+  // A final anchor matters because some edit models weight the tail of the
+  // prompt most strongly.
+  if (useIdentity && identityWeight >= 0.55) {
+    const anchors = ['The subject must remain the same person as the reference photo.'];
+    if (preservePose) {
+      anchors.push('Keep the exact physical body pose and position.');
+    }
+    if (preserveEnvironment) {
+      anchors.push('Keep the original background environment.');
+    }
+    segments.push(anchors.join(' '));
+  }
 
   return {
     prompt: segments.join(', '),

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Wand2, Sparkles, RotateCcw, Shield } from 'lucide-react';
+import { Camera, SlidersHorizontal, Image as ImageIcon, RotateCcw, ShieldCheck, ShieldAlert } from 'lucide-react';
 import FramingSelector from './components/controls/FramingSelector';
 import CaptureViewport from './components/capture/CaptureViewport';
 import PromptPanel from './components/prompts/PromptPanel';
@@ -11,17 +11,22 @@ export default function App() {
   const [framingMode, setFramingMode] = useState('headshot');
   const [capturedImage, setCapturedImage] = useState(null);
   const [prompt, setPrompt] = useState(
-    'Cyberpunk operative in neon rain alleyway, matte armor, volumetric fog, 85mm portrait'
+    'Professional portrait studio lighting, crisp natural skin texture, balanced ambient light, high-end commercial editorial quality, sharp focus'
   );
   const [negativePrompt, setNegativePrompt] = useState(
-    'blurry, deformed, oversaturated, low quality'
+    'blurry, deformed, oversaturated, low quality, distorted anatomy'
   );
-  const [selectedPreset, setSelectedPreset] = useState('cyberpunk');
+  const [selectedPreset, setSelectedPreset] = useState('natural-enhance');
   const [likeness, setLikeness] = useState(0.85);
+  const [preserveBody, setPreserveBody] = useState(true);
+  const [preservePose, setPreservePose] = useState(true);
+  const [preserveEnvironment, setPreserveEnvironment] = useState(false);
   const [apiKey, setApiKey] = useState(() => readApiKey());
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [identityUsed, setIdentityUsed] = useState(false);
+  const [renderInfo, setRenderInfo] = useState(null);
+  const [captureVersion, setCaptureVersion] = useState(0);
   const [error, setError] = useState(null);
   const [retryUntil, setRetryUntil] = useState(0);
   const [clock, setClock] = useState(() => Date.now());
@@ -72,12 +77,17 @@ export default function App() {
     if (typeof preset.negativePrompt === 'string') {
       setNegativePrompt(preset.negativePrompt);
     }
+    if (typeof preset.preserveEnvironment === 'boolean') {
+      setPreserveEnvironment(preset.preserveEnvironment);
+    }
   };
 
   const handleCapture = (img) => {
     setCapturedImage(img);
+    setCaptureVersion((version) => version + 1);
     replaceGeneratedImage(null);
     setIdentityUsed(false);
+    setRenderInfo(null);
     setError(null);
     clearCooldown();
     setActiveStep('style');
@@ -85,8 +95,10 @@ export default function App() {
 
   const handleClearCapture = () => {
     setCapturedImage(null);
+    setCaptureVersion((version) => version + 1);
     replaceGeneratedImage(null);
     setIdentityUsed(false);
+    setRenderInfo(null);
     setError(null);
     clearCooldown();
     setActiveStep('scan');
@@ -102,7 +114,7 @@ export default function App() {
   const handleGenerate = async () => {
     if (!capturedImage || isGenerating) return;
     if (!prompt.trim()) {
-      setError('Describe the persona you want before synthesizing.');
+      setError('Describe the style or transformation you want before generating.');
       return;
     }
     if (retryAfter > 0) return;
@@ -119,14 +131,18 @@ export default function App() {
         negativePrompt,
         apiKey,
         styleId: selectedPreset,
+        preserveBody,
+        preservePose,
+        preserveEnvironment,
       });
       replaceGeneratedImage(result.url);
       setIdentityUsed(result.identityUsed);
+      setRenderInfo({ model: result.model, promptUsed: result.promptUsed });
       clearCooldown();
       setActiveStep('result');
     } catch (err) {
-      console.error('Synthesis error:', err);
-      setError(err instanceof Error ? err.message : 'Synthesis failed. Try again.');
+      console.error('Portrait generation error:', err);
+      setError(err instanceof Error ? err.message : 'Generation failed. Try again.');
       if (err?.retryAfter) {
         setClock(Date.now());
         setRetryUntil(Date.now() + err.retryAfter * 1000);
@@ -144,12 +160,12 @@ export default function App() {
     <div className="h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-hidden bg-black text-zinc-100 flex flex-col justify-between antialiased selection:bg-zinc-800 selection:text-white">
       {/* Top Header */}
       <header className="flex-shrink-0 h-12 px-4 sm:px-6 border-b border-zinc-900 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-between w-full">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center text-black font-black text-xs shadow-md">
             M
           </div>
-          <span className="font-bold text-sm tracking-tight text-white">MorphLens</span>
-          <span className="hidden min-[380px]:inline text-xs font-semibold text-zinc-300 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
+          <span className="font-semibold text-sm tracking-tight text-white">MorphLens</span>
+          <span className="hidden min-[380px]:inline text-[11px] font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
             Studio
           </span>
         </div>
@@ -157,8 +173,12 @@ export default function App() {
         {/* Header Right Status */}
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800/80 px-2.5 py-1 rounded-full">
-            <Shield size={12} className={apiKey ? 'text-emerald-400' : 'text-amber-400'} />
-            {apiKey ? 'Identity' : 'Prompt'} Mode
+            {apiKey ? (
+              <ShieldCheck size={13} className="text-emerald-400" />
+            ) : (
+              <ShieldAlert size={13} className="text-zinc-400" />
+            )}
+            {apiKey ? 'API Key Active' : 'Free Reference Mode'}
           </span>
         </div>
       </header>
@@ -177,10 +197,13 @@ export default function App() {
                 originalImage={capturedImage}
                 generatedImage={generatedImage}
                 identityUsed={identityUsed}
+                model={renderInfo?.model}
+                promptUsed={renderInfo?.promptUsed}
+                onConnectKey={() => setActiveStep('style')}
                 onReset={handleReset}
               />
             ) : (
-              <div className="w-full min-w-0 min-h-full flex flex-col items-center justify-start lg:justify-center gap-2 overflow-x-hidden">
+              <div className="w-full min-w-0 min-h-full flex flex-col items-center justify-start lg:justify-center gap-2.5 overflow-x-hidden">
                 {/* Viewfinder Lens */}
                 <CaptureViewport
                   framingMode={framingMode}
@@ -217,10 +240,10 @@ export default function App() {
                   />
                   <div className="min-w-0">
                     <span className="text-sm font-semibold text-zinc-100 block truncate">
-                      Subject Captured
+                      Photo Loaded
                     </span>
-                    <span className="text-xs text-zinc-400 uppercase font-semibold">
-                      Mode: {framingMode}
+                    <span className="text-xs text-zinc-400 capitalize font-medium">
+                      Framing: {framingMode.replace('_', ' ')}
                     </span>
                   </div>
                 </div>
@@ -228,60 +251,44 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleClearCapture}
-                  className="px-3 py-2 min-h-[40px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm font-medium flex items-center gap-1.5 hover:text-white flex-shrink-0 active:scale-95"
+                  className="px-3 py-2 min-h-[40px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 hover:text-white flex-shrink-0 active:scale-95"
                 >
                   <RotateCcw size={13} />
-                  Retake
+                  Change Photo
                 </button>
               </div>
             ) : (
-              <div className="lg:hidden flex items-center justify-between gap-2 p-3 mb-2.5 bg-zinc-950 border border-amber-500/30 rounded-2xl w-full">
-                <div className="flex items-center gap-2 text-sm text-amber-300 font-semibold min-w-0">
-                  <Camera size={16} className="flex-shrink-0 text-amber-400" />
-                  <span className="truncate">No photo scanned yet</span>
+              <div className="lg:hidden flex items-center justify-between gap-2 p-3 mb-2.5 bg-zinc-950 border border-zinc-800 rounded-2xl w-full">
+                <div className="flex items-center gap-2 text-xs text-zinc-300 font-medium min-w-0">
+                  <Camera size={15} className="flex-shrink-0 text-zinc-400" />
+                  <span className="truncate">No photo loaded yet</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveStep('scan')}
-                  className="px-3 py-2 min-h-[40px] bg-white text-black font-bold text-sm rounded-lg active:scale-95 flex-shrink-0"
+                  className="px-3 py-1.5 min-h-[36px] bg-white text-black font-semibold text-xs rounded-lg active:scale-95 flex-shrink-0"
                 >
-                  Open Camera
+                  Take / Upload
                 </button>
               </div>
             )}
 
-            {/* Framing Selector: mobile style step needs its own copy because the
-                camera stage (which holds the other selector) is hidden here. */}
-            <div className="lg:hidden w-full mb-2.5 p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-2xl">
-              <div className="flex items-center justify-between px-1 mb-1.5">
-                <span className="text-xs font-mono tracking-wider uppercase text-zinc-300 font-semibold">
-                  Framing
-                </span>
-                <span className="text-xs text-zinc-400">Tap to change</span>
-              </div>
-              <FramingSelector
-                currentMode={framingMode}
-                onSelectMode={(mode) => setFramingMode(mode)}
-              />
-            </div>
-
-            {/* Desktop Framing Selector */}
-            <div className="hidden lg:block mb-3 p-3 bg-zinc-950 border border-zinc-900 rounded-2xl w-full">
-              <FramingSelector
-                currentMode={framingMode}
-                onSelectMode={(mode) => setFramingMode(mode)}
-              />
-            </div>
-
             {/* Prompt & Attire Customizer */}
             <div className="w-full min-w-0">
               <PromptPanel
+                key={captureVersion}
                 prompt={prompt}
                 onPromptChange={setPrompt}
                 selectedPreset={selectedPreset}
                 onSelectPreset={handleSelectPreset}
                 likeness={likeness}
                 onLikenessChange={setLikeness}
+                preserveBody={preserveBody}
+                onPreserveBodyChange={setPreserveBody}
+                preservePose={preservePose}
+                onPreservePoseChange={setPreservePose}
+                preserveEnvironment={preserveEnvironment}
+                onPreserveEnvironmentChange={setPreserveEnvironment}
                 negativePrompt={negativePrompt}
                 onNegativePromptChange={setNegativePrompt}
                 isGenerating={isGenerating}
@@ -297,50 +304,50 @@ export default function App() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation Bar (Thumb Zone) */}
+      {/* Mobile Bottom Navigation Bar */}
       <nav className="flex-shrink-0 lg:hidden border-t border-zinc-900 bg-black/95 backdrop-blur-xl px-4 pt-1.5 safe-bottom flex items-center justify-around z-50">
         <button
           type="button"
           onClick={() => setActiveStep('scan')}
           aria-current={activeStep === 'scan' ? 'page' : undefined}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center gap-1 min-h-[50px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'scan'
-              ? 'text-amber-400 font-bold'
-              : 'text-zinc-400 hover:text-zinc-200'
+              ? 'text-white font-semibold'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
-          <Camera size={21} />
-          <span className="text-xs font-semibold">1. Camera</span>
+          <Camera size={19} />
+          <span className="text-[11px]">1. Photo</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveStep('style')}
           aria-current={activeStep === 'style' ? 'page' : undefined}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center gap-1 min-h-[50px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'style'
-              ? 'text-amber-400 font-bold'
-              : 'text-zinc-400 hover:text-zinc-200'
+              ? 'text-white font-semibold'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
-          <Wand2 size={21} />
-          <span className="text-xs font-semibold">2. Style</span>
+          <SlidersHorizontal size={19} />
+          <span className="text-[11px]">2. Style & Controls</span>
         </button>
 
         <button
           type="button"
           disabled={!generatedImage}
           onClick={() => setActiveStep('result')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center gap-1 min-h-[50px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'result'
-              ? 'text-amber-400 font-bold'
+              ? 'text-white font-semibold'
               : generatedImage
                 ? 'text-zinc-400 hover:text-zinc-200'
-                : 'text-zinc-600 cursor-not-allowed opacity-60'
+                : 'text-zinc-700 cursor-not-allowed opacity-50'
           }`}
         >
-          <Sparkles size={21} />
-          <span className="text-xs font-semibold">3. Result</span>
+          <ImageIcon size={19} />
+          <span className="text-[11px]">3. Result</span>
         </button>
       </nav>
     </div>

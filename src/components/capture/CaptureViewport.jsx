@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Upload, RotateCcw, SwitchCamera, Focus, X, AlertCircle, ImageIcon } from 'lucide-react';
+import { Camera, Upload, RotateCcw, SwitchCamera, X, AlertCircle, ImageIcon, Check } from 'lucide-react';
 
 export default function CaptureViewport({
   framingMode,
@@ -147,7 +147,6 @@ export default function CaptureViewport({
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
-    // Reset the input so choosing the same photo again still fires onChange.
     e.target.value = '';
     if (!file) return;
 
@@ -156,7 +155,7 @@ export default function CaptureViewport({
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setCameraError('That photo is larger than 20 MB. Choose a smaller image.');
+      setCameraError('Photo exceeds 20 MB. Choose a smaller image.');
       return;
     }
 
@@ -187,7 +186,7 @@ export default function CaptureViewport({
         className="hidden"
       />
       {/* Viewfinder Main Card */}
-      <div className="relative w-full aspect-[3/4] sm:aspect-[4/5] max-h-[50dvh] sm:max-h-[480px] bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-800/90 rounded-3xl mx-auto shadow-2xl">
+      <div className="relative w-full aspect-[3/4] sm:aspect-[4/5] max-h-[50dvh] sm:max-h-[480px] bg-zinc-950 flex items-center justify-center overflow-hidden border border-zinc-800 rounded-3xl mx-auto shadow-2xl">
         {/* Shutter Flash Animation */}
         {isShutterFlashing && (
           <div className="absolute inset-0 bg-white z-50 pointer-events-none animate-out fade-out duration-200" />
@@ -195,25 +194,25 @@ export default function CaptureViewport({
 
         {capturedImage ? (
           /* Captured Subject Preview */
-          <div className="relative w-full h-full flex items-center justify-center bg-black">
+          <div className="relative w-full h-full flex items-center justify-center bg-zinc-950">
             <img
               src={capturedImage}
-              alt="Scanned Subject"
+              alt="Reference Portrait"
               className="w-full h-full object-contain"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
-            <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/75 border border-zinc-700 text-zinc-100 px-3 py-2 rounded-full text-sm font-semibold backdrop-blur-md shadow-lg">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Subject Acquired
+            <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md shadow-lg">
+              <Check size={14} className="text-emerald-400" />
+              <span>Reference Photo Loaded</span>
             </div>
 
             <button
               type="button"
               onClick={onClearCapture}
-              className="absolute top-3 right-3 min-h-[40px] bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3.5 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+              className="absolute top-3 right-3 min-h-[38px] bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
             >
-              <RotateCcw size={14} />
+              <RotateCcw size={13} />
               Retake
             </button>
           </div>
@@ -228,105 +227,88 @@ export default function CaptureViewport({
               className={`w-full h-full object-cover ${facingMode === 'user' ? '-scale-x-100' : ''}`}
             />
 
-            {/* Viewfinder Corner Markings */}
-            <div className="absolute inset-4 pointer-events-none border border-white/10 rounded-2xl">
-              <div className="absolute -top-0.5 -left-0.5 w-3.5 h-3.5 border-t-2 border-l-2 border-white/70" />
-              <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 border-t-2 border-r-2 border-white/70" />
-              <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 border-b-2 border-l-2 border-white/70" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-b-2 border-r-2 border-white/70" />
-
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none opacity-40">
-                <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
-                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white" />
-              </div>
-            </div>
-
-            {/* Dynamic Alignment Guides */}
+            {/* Subtle Viewfinder Framing Guides */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
               {framingMode === 'headshot' && (
-                <div className="w-[52%] aspect-[1/1] max-w-[210px] border border-white/50 rounded-[50%] shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
+                <div className="w-[54%] aspect-[1/1] max-w-[210px] border border-white/60 rounded-[50%]" />
               )}
               {framingMode === 'half_body' && (
-                <div className="w-[66%] aspect-[4/5] max-w-[260px] border border-white/50 rounded-t-[70px] rounded-b-xl shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
+                <div className="w-[66%] aspect-[4/5] max-w-[260px] border border-white/60 rounded-t-[70px] rounded-b-xl" />
               )}
               {framingMode === 'full_body' && (
-                <div className="w-[46%] aspect-[9/16] max-w-[200px] border border-white/50 rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
+                <div className="w-[46%] aspect-[9/16] max-w-[200px] border border-white/60 rounded-2xl" />
               )}
               {framingMode === 'auto' && (
-                <div className="w-[60%] aspect-[3/4] max-w-[240px] border border-dashed border-white/40 rounded-2xl" />
+                <div className="w-[60%] aspect-[3/4] max-w-[240px] border border-dashed border-white/50 rounded-2xl" />
               )}
             </div>
 
-            {/* Top HUD with Close & Flip */}
+            {/* Top Controls with Close & Flip */}
             <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto z-20">
               <button
                 type="button"
                 onClick={stopCamera}
-                className="w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-10 h-10 rounded-full bg-black/75 hover:bg-black/90 border border-zinc-700 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Close Camera"
                 aria-label="Close Camera"
               >
-                <X size={18} />
+                <X size={17} />
               </button>
 
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-xs font-semibold text-zinc-200">
-                <Focus size={12} className="text-amber-400" />
-                <span>LIVE</span>
+              <div className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-zinc-700 text-xs font-mono text-zinc-200">
+                CAMERA ACTIVE
               </div>
 
               <button
                 type="button"
                 onClick={toggleFacingMode}
-                className="w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-10 h-10 rounded-full bg-black/75 hover:bg-black/90 border border-zinc-700 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Flip Camera"
                 aria-label="Flip Camera"
               >
-                <SwitchCamera size={17} />
+                <SwitchCamera size={16} />
               </button>
             </div>
           </div>
         ) : (
-          /* Engaging Standby Stage (Never an empty black box) */
-          <div className="relative w-full h-full flex flex-col items-center justify-center p-5 text-center">
-            {/* Ambient Radial Mesh Background */}
-            <div className="absolute inset-0 bg-[radial-gradient(#3f3f46_1px,transparent_1px)] [background-size:16px_16px] opacity-35 pointer-events-none" />
-
+          /* Clean Standby State */
+          <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center">
             <div className="relative z-10 flex flex-col items-center max-w-[280px]">
-              <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 mb-3 shadow-xl">
-                <Focus size={30} className="text-amber-400 stroke-[1.7]" />
+              <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 mb-3 shadow-xl">
+                <Camera size={26} className="text-zinc-200" />
               </div>
 
-              <h3 className="text-lg font-bold tracking-tight text-white mb-1">
-                Optical Scanner
+              <h3 className="text-base font-semibold text-white mb-1">
+                Reference Photo Setup
               </h3>
-              <p className="text-sm text-zinc-300 mb-5 leading-relaxed">
-                Scan your face or stance to synthesize any character or attire.
+              <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+                Take a portrait photo or upload an image to use as your identity, stance, and body reference.
               </p>
 
               {cameraError && (
-                <div className="flex items-start gap-2 p-3 mb-3 bg-red-950/50 border border-red-800/50 text-red-200 rounded-xl text-sm text-left">
-                  <AlertCircle size={16} className="flex-shrink-0 text-red-400 mt-0.5" />
+                <div className="flex items-start gap-2 p-2.5 mb-3 bg-red-950/60 border border-red-800/60 text-red-200 rounded-xl text-xs text-left">
+                  <AlertCircle size={15} className="flex-shrink-0 text-red-400 mt-0.5" />
                   <span>{cameraError}</span>
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-2.5 w-full">
+              <div className="flex flex-col gap-2 w-full">
                 <button
                   type="button"
                   onClick={() => startCamera()}
-                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-98"
+                  className="w-full min-h-[46px] py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98"
                 >
-                  <Camera size={18} />
+                  <Camera size={17} />
                   Open Camera
                 </button>
 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full min-h-[44px] py-3 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-semibold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                  className="w-full min-h-[42px] py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
                 >
-                  <Upload size={15} />
+                  <Upload size={14} />
                   Upload Photo
                 </button>
               </div>
@@ -335,7 +317,7 @@ export default function CaptureViewport({
         )}
       </div>
 
-      {/* Shutter Bar (Thumb Deck - Only visible when camera stream is actively running) */}
+      {/* Camera Shutter Bar */}
       {isCameraActive && (
         <div className="w-full pt-2.5 pb-1 px-4 flex items-center justify-between max-w-[320px] mx-auto animate-in fade-in duration-200">
           <button
@@ -344,8 +326,8 @@ export default function CaptureViewport({
             className="w-12 h-12 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md"
             title="Upload Photo"
           >
-            <ImageIcon size={18} />
-            <span className="text-xs font-semibold mt-0.5 text-zinc-300">Photo</span>
+            <ImageIcon size={17} />
+            <span className="text-[10px] font-semibold mt-0.5 text-zinc-400">File</span>
           </button>
 
           {/* Shutter Button */}
@@ -358,15 +340,15 @@ export default function CaptureViewport({
             <div className="w-full h-full rounded-full bg-white active:bg-zinc-300 transition-colors flex items-center justify-center" />
           </button>
 
-          {/* Camera Close Button */}
+          {/* Close Button */}
           <button
             type="button"
             onClick={stopCamera}
             className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-zinc-300 hover:text-white transition-all active:scale-95 shadow-md"
             title="Close Camera"
           >
-            <X size={18} />
-            <span className="text-xs font-semibold mt-0.5 text-zinc-300">Close</span>
+            <X size={17} />
+            <span className="text-[10px] font-semibold mt-0.5 text-zinc-400">Close</span>
           </button>
         </div>
       )}

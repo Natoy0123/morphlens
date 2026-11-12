@@ -71,6 +71,7 @@ test('identity directives scale with the likeness weight', () => {
     likeness: 0.95,
   });
   assert.match(strict.prompt, /exact same face/i);
+  assert.match(strict.prompt, /do not generate a different person/i);
 
   const loose = buildPrompt({
     prompt: 'a ranger',
@@ -78,6 +79,30 @@ test('identity directives scale with the likeness weight', () => {
     likeness: 0.3,
   });
   assert.match(loose.prompt, /reimagine the face/i);
+});
+
+test('puts the user creative direction before the identity instruction', () => {
+  const result = buildPrompt({
+    prompt: 'a ranger in a red cloak',
+    useIdentity: true,
+    likeness: 0.95,
+  });
+  assert.ok(
+    result.prompt.indexOf('a ranger in a red cloak') <
+      result.prompt.indexOf('reference photo')
+  );
+});
+
+test('full-body framing uses wide-angle language instead of an 85mm portrait lens', () => {
+  const result = buildPrompt({ prompt: 'a knight', framingMode: 'full_body' });
+  assert.match(result.prompt, /wide angle/i);
+  assert.doesNotMatch(result.prompt, /85mm/i);
+});
+
+test('headshot framing keeps the portrait lens and shallow depth of field', () => {
+  const result = buildPrompt({ prompt: 'a detective', framingMode: 'headshot' });
+  assert.match(result.prompt, /85mm lens/i);
+  assert.match(result.prompt, /shallow depth of field/i);
 });
 
 test('prompt-only builds never mention the reference photo', () => {

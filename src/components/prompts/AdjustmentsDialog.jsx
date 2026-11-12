@@ -5,13 +5,14 @@ import {
   User,
   Shield,
   Tag,
-  KeyRound,
   Check,
   Plus,
   ExternalLink,
+  Server,
+  FileCode,
 } from 'lucide-react';
 import { isValidApiKey, maskApiKey } from '../../api/apiKey';
-import { validateApiKey } from '../../api/generateApi';
+import { validateApiKey, validateCustomEndpoint } from '../../api/generateApi';
 
 const STYLE_TAGS = [
   'Studio Rim Lighting',
@@ -41,6 +42,10 @@ export default function AdjustmentsDialog({
   onNegativePromptChange,
   apiKey,
   onApiKeyChange,
+  engineMode = 'pollinations',
+  onEngineModeChange,
+  customEndpoint = '',
+  onCustomEndpointChange,
 }) {
   const dialogRef = useRef(null);
 
@@ -48,6 +53,11 @@ export default function AdjustmentsDialog({
   const [keyError, setKeyError] = useState('');
   const [keyWarning, setKeyWarning] = useState('');
   const [keyStatus, setKeyStatus] = useState('idle');
+
+  const [endpointDraft, setEndpointDraft] = useState(customEndpoint || '');
+  const [endpointError, setEndpointError] = useState('');
+  const [endpointSuccess, setEndpointSuccess] = useState('');
+  const [endpointStatus, setEndpointStatus] = useState('idle');
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -112,6 +122,37 @@ export default function AdjustmentsDialog({
     setKeyDraft('');
     setKeyError('');
     setKeyWarning('');
+  };
+
+  const handleSaveEndpoint = async () => {
+    const value = endpointDraft.trim().replace(/\/+$/, '');
+    if (!value) {
+      onCustomEndpointChange?.('');
+      setEndpointError('');
+      setEndpointSuccess('');
+      return;
+    }
+
+    setEndpointStatus('testing');
+    setEndpointError('');
+    setEndpointSuccess('');
+    try {
+      const res = await validateCustomEndpoint(value);
+      onCustomEndpointChange?.(value);
+      setEndpointDraft(value);
+      setEndpointSuccess(`Connected to ${res.model || 'FLUX.1 Backend'}`);
+    } catch (err) {
+      setEndpointError(err?.message || 'Could not connect to self-hosted endpoint.');
+    } finally {
+      setEndpointStatus('idle');
+    }
+  };
+
+  const handleRemoveEndpoint = () => {
+    onCustomEndpointChange?.('');
+    setEndpointDraft('');
+    setEndpointError('');
+    setEndpointSuccess('');
   };
 
   const likenessLabel =
@@ -285,66 +326,158 @@ export default function AdjustmentsDialog({
           />
         </div>
 
-        {/* 5. API Key Management */}
-        <div className="space-y-2 p-3.5 bg-zinc-950/60 border border-zinc-800/80 rounded-xl">
+        {/* 5. Inference Engine & Backend Provider */}
+        <div className="space-y-3 p-3.5 bg-zinc-950/60 border border-zinc-800/80 rounded-xl">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-              <KeyRound size={13} className={apiKey ? 'text-emerald-400' : 'text-zinc-400'} />
-              <span>Pollinations API Key</span>
+              <Server size={14} className="text-zinc-400" />
+              <span>Inference Engine</span>
             </span>
-            {apiKey && (
-              <span className="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2 py-0.5 rounded">
-                Connected ({maskApiKey(apiKey)})
-              </span>
-            )}
-          </div>
 
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Connect an API key to enable instant FLUX high-speed editing without queue throttles.
-          </p>
-
-          <div className="flex gap-2 pt-1">
-            <input
-              type="password"
-              value={keyDraft}
-              onChange={(e) => setKeyDraft(e.target.value)}
-              placeholder="sk_..."
-              autoComplete="off"
-              className="flex-1 min-w-0 px-3 py-2 bg-zinc-900 border border-zinc-700/80 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-zinc-500 font-mono"
-            />
-            <button
-              type="button"
-              onClick={handleSaveKey}
-              disabled={keyStatus === 'checking'}
-              className="px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-200 disabled:bg-zinc-700 text-black font-semibold text-xs flex items-center gap-1.5 flex-shrink-0 active:scale-95 transition-colors"
-            >
-              <Check size={13} />
-              <span>{keyStatus === 'checking' ? 'Testing' : 'Save'}</span>
-            </button>
-          </div>
-
-          {keyError && <p className="text-xs text-red-300 font-medium">{keyError}</p>}
-          {keyWarning && <p className="text-xs text-amber-300 font-medium">{keyWarning}</p>}
-
-          <div className="flex items-center justify-between gap-2 pt-1 text-xs">
-            <a
-              href="https://enter.pollinations.ai"
-              target="_blank"
-              rel="noreferrer"
-              className="text-zinc-400 hover:text-white inline-flex items-center gap-1"
-            >
-              Get a Pollinations Key <ExternalLink size={11} />
-            </a>
-            {apiKey && (
+            {/* Engine Mode Tabs */}
+            <div className="flex items-center p-0.5 bg-zinc-900 border border-zinc-800 rounded-lg">
               <button
                 type="button"
-                onClick={handleRemoveKey}
-                className="text-xs text-zinc-400 hover:text-red-400 transition-colors"
+                onClick={() => onEngineModeChange?.('pollinations')}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  engineMode === 'pollinations'
+                    ? 'bg-zinc-800 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
               >
-                Disconnect Key
+                Pollinations Cloud
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => onEngineModeChange?.('self-hosted')}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  engineMode === 'self-hosted'
+                    ? 'bg-zinc-800 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Self-Hosted FLUX.1
+              </button>
+            </div>
           </div>
+
+          {engineMode === 'pollinations' ? (
+            /* Pollinations Cloud API Key Settings */
+            <div className="space-y-2 pt-1 border-t border-zinc-800/60">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-zinc-400">
+                  Cloud FLUX.1 Kontext Pro & Klein endpoints
+                </span>
+                {apiKey && (
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2 py-0.5 rounded">
+                    Key Connected ({maskApiKey(apiKey)})
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="password"
+                  value={keyDraft}
+                  onChange={(e) => setKeyDraft(e.target.value)}
+                  placeholder="sk_..."
+                  autoComplete="off"
+                  className="flex-1 min-w-0 px-3 py-2 bg-zinc-900 border border-zinc-700/80 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-zinc-500 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveKey}
+                  disabled={keyStatus === 'checking'}
+                  className="px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-200 disabled:bg-zinc-700 text-black font-semibold text-xs flex items-center gap-1.5 flex-shrink-0 active:scale-95 transition-colors"
+                >
+                  <Check size={13} />
+                  <span>{keyStatus === 'checking' ? 'Testing' : 'Save'}</span>
+                </button>
+              </div>
+
+              {keyError && <p className="text-xs text-red-300 font-medium">{keyError}</p>}
+              {keyWarning && <p className="text-xs text-amber-300 font-medium">{keyWarning}</p>}
+
+              <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+                <a
+                  href="https://enter.pollinations.ai"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-zinc-400 hover:text-white inline-flex items-center gap-1"
+                >
+                  Get a Pollinations Key <ExternalLink size={11} />
+                </a>
+                {apiKey && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveKey}
+                    className="text-xs text-zinc-400 hover:text-red-400 transition-colors"
+                  >
+                    Disconnect Key
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Self-Hosted / Colab Backend Settings */
+            <div className="space-y-2 pt-1 border-t border-zinc-800/60">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-zinc-400">
+                  Cloudflare Tunnel / Local GPU Endpoint
+                </span>
+                {customEndpoint && (
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2 py-0.5 rounded">
+                    Active Backend
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="url"
+                  value={endpointDraft}
+                  onChange={(e) => setEndpointDraft(e.target.value)}
+                  placeholder="https://random-id.trycloudflare.com or http://localhost:8000"
+                  autoComplete="off"
+                  className="flex-1 min-w-0 px-3 py-2 bg-zinc-900 border border-zinc-700/80 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-zinc-500 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveEndpoint}
+                  disabled={endpointStatus === 'testing'}
+                  className="px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-200 disabled:bg-zinc-700 text-black font-semibold text-xs flex items-center gap-1.5 flex-shrink-0 active:scale-95 transition-colors"
+                >
+                  <Check size={13} />
+                  <span>{endpointStatus === 'testing' ? 'Testing' : 'Connect'}</span>
+                </button>
+              </div>
+
+              {endpointError && <p className="text-xs text-red-300 font-medium">{endpointError}</p>}
+              {endpointSuccess && <p className="text-xs text-emerald-300 font-medium">{endpointSuccess}</p>}
+
+              <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold text-zinc-200">
+                  <FileCode size={13} className="text-zinc-400" />
+                  <span>Free Google Colab Backend</span>
+                </div>
+                <p className="text-zinc-400 text-xs leading-relaxed">
+                  Upload <code className="text-zinc-200 font-mono bg-zinc-800 px-1 py-0.5 rounded">backend/colab_flux_server.ipynb</code> to Google Colab with a free T4 GPU to generate with FLUX.1 [schnell] in 3 seconds.
+                </p>
+              </div>
+
+              {customEndpoint && (
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleRemoveEndpoint}
+                    className="text-xs text-zinc-400 hover:text-red-400 transition-colors"
+                  >
+                    Disconnect Endpoint
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

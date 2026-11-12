@@ -7,6 +7,7 @@ import {
   ShieldAlert,
   BookOpen,
   History,
+  Server,
 } from 'lucide-react';
 import FramingSelector from './components/controls/FramingSelector';
 import CaptureViewport from './components/capture/CaptureViewport';
@@ -18,7 +19,14 @@ import ImageViewerDialog from './components/ui/ImageViewerDialog';
 import HistoryDrawer from './components/history/HistoryDrawer';
 import Toast from './components/ui/Toast';
 import { synthesizePersona } from './api/generateApi';
-import { readApiKey, saveApiKey } from './api/apiKey';
+import {
+  readApiKey,
+  saveApiKey,
+  readCustomEndpoint,
+  saveCustomEndpoint,
+  readEngineMode,
+  saveEngineMode,
+} from './api/apiKey';
 import { saveGenerationRecord } from './services/historyStorage';
 
 export default function App() {
@@ -36,6 +44,8 @@ export default function App() {
   const [preservePose, setPreservePose] = useState(true);
   const [preserveEnvironment, setPreserveEnvironment] = useState(false);
   const [apiKey, setApiKey] = useState(() => readApiKey());
+  const [customEndpoint, setCustomEndpoint] = useState(() => readCustomEndpoint());
+  const [engineMode, setEngineMode] = useState(() => readEngineMode());
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [identityUsed, setIdentityUsed] = useState(false);
@@ -144,6 +154,26 @@ export default function App() {
     setToastMessage(stored ? 'API key connected & stored' : 'API key disconnected');
   };
 
+  const handleCustomEndpointChange = (url) => {
+    const saved = saveCustomEndpoint(url);
+    setCustomEndpoint(saved);
+    setError(null);
+    clearCooldown();
+    setToastMessage(saved ? 'Self-hosted backend connected' : 'Self-hosted backend disconnected');
+  };
+
+  const handleEngineModeChange = (mode) => {
+    const saved = saveEngineMode(mode);
+    setEngineMode(saved);
+    setError(null);
+    clearCooldown();
+    setToastMessage(
+      saved === 'self-hosted'
+        ? 'Switched to Self-Hosted FLUX.1 Engine'
+        : 'Switched to Pollinations Cloud Engine'
+    );
+  };
+
   const handleGenerate = async () => {
     if (!capturedImage || isGenerating) return;
     if (!prompt.trim()) {
@@ -167,6 +197,8 @@ export default function App() {
         preserveBody,
         preservePose,
         preserveEnvironment,
+        engineMode,
+        customEndpoint,
       });
       replaceGeneratedImage(result.url);
       setIdentityUsed(result.identityUsed);
@@ -254,12 +286,22 @@ export default function App() {
           </button>
 
           <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800/80 px-3 py-1.5 min-h-[36px] rounded-full">
-            {apiKey ? (
-              <ShieldCheck size={14} className="text-emerald-400" />
+            {engineMode === 'self-hosted' && customEndpoint ? (
+              <>
+                <Server size={14} className="text-emerald-400" />
+                <span className="hidden sm:inline">FLUX Self-Hosted</span>
+              </>
+            ) : apiKey ? (
+              <>
+                <ShieldCheck size={14} className="text-emerald-400" />
+                <span className="hidden sm:inline">Key Connected</span>
+              </>
             ) : (
-              <ShieldAlert size={14} className="text-zinc-400" />
+              <>
+                <ShieldAlert size={14} className="text-zinc-400" />
+                <span className="hidden sm:inline">Free Mode</span>
+              </>
             )}
-            <span className="hidden sm:inline">{apiKey ? 'Key Connected' : 'Free Mode'}</span>
           </span>
         </div>
       </header>
@@ -337,6 +379,10 @@ export default function App() {
                 onRemoveCapture={handleClearCaptureRequest}
                 apiKey={apiKey}
                 onApiKeyChange={handleApiKeyChange}
+                engineMode={engineMode}
+                onEngineModeChange={handleEngineModeChange}
+                customEndpoint={customEndpoint}
+                onCustomEndpointChange={handleCustomEndpointChange}
                 error={error}
                 retryAfter={retryAfter}
               />

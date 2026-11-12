@@ -23,6 +23,7 @@ import {
   Zap,
   Shield,
   Palette,
+  Server,
 } from 'lucide-react';
 import { STYLE_PRESETS } from '../../store/presets';
 import { maskApiKey } from '../../api/apiKey';
@@ -69,6 +70,10 @@ export default function PromptPanel({
   onRemoveCapture,
   apiKey,
   onApiKeyChange,
+  engineMode = 'pollinations',
+  onEngineModeChange,
+  customEndpoint = '',
+  onCustomEndpointChange,
   error,
   retryAfter,
 }) {
@@ -342,8 +347,17 @@ export default function PromptPanel({
             onClick={() => setShowAdjustments(true)}
             className="flex items-center gap-1.5 hover:text-zinc-200 transition-colors"
           >
-            <KeyRound size={12} className={apiKey ? 'text-emerald-400' : 'text-zinc-400'} />
-            <span>{apiKey ? `Key Connected (${maskApiKey(apiKey)})` : 'Pollinations Key'}</span>
+            {engineMode === 'self-hosted' && customEndpoint ? (
+              <>
+                <Server size={13} className="text-emerald-400" />
+                <span>FLUX Self-Hosted Connected</span>
+              </>
+            ) : (
+              <>
+                <KeyRound size={13} className={apiKey ? 'text-emerald-400' : 'text-zinc-400'} />
+                <span>{apiKey ? `Key Connected (${maskApiKey(apiKey)})` : 'Pollinations Key'}</span>
+              </>
+            )}
           </button>
           <span className="text-xs font-mono text-zinc-400 font-medium">Studio v1.0</span>
         </div>
@@ -368,6 +382,10 @@ export default function PromptPanel({
           onNegativePromptChange={onNegativePromptChange}
           apiKey={apiKey}
           onApiKeyChange={onApiKeyChange}
+          engineMode={engineMode}
+          onEngineModeChange={onEngineModeChange}
+          customEndpoint={customEndpoint}
+          onCustomEndpointChange={onCustomEndpointChange}
         />
       )}
     </div>

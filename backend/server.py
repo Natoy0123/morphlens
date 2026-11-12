@@ -15,11 +15,14 @@ Usage:
 import io
 import os
 import sys
+import gc
 import base64
 import random
 import logging
 import traceback
 from typing import Optional
+
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,6 +53,17 @@ async def global_exception_handler(request: Request, exc: Exception):
         headers={"Access-Control-Allow-Origin": "*"},
     )
 
+def ensure_swap():
+    try:
+        if os.path.exists("/proc/swaps"):
+            with open("/proc/swaps") as f:
+                lines = f.readlines()
+            if len(lines) <= 1:
+                logger.info("Enabling 8GB virtual swap to prevent Colab system RAM crash...")
+                os.system("fallocate -l 8G /swapfile 2>/dev/null && chmod 600 /swapfile 2>/dev/null && mkswap /swapfile 2>/dev/null && swapon /swapfile 2>/dev/null")
+    except Exception as e:
+        logger.warning(f"Swap configuration: {e}")
+
 pipe = None
 img2img_pipe = None
 load_error = None
@@ -58,7 +72,13 @@ DEVICE = "cuda" if os.environ.get("FORCE_CPU") != "1" else "cpu"
 
 def load_pipeline():
     global pipe, img2img_pipe, DEVICE, load_error
+    ensure_swap()
+
+    import gc
     import torch
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     # Ensure gguf is available
     try:
@@ -107,9 +127,16 @@ def load_pipeline():
 
         if DEVICE == "cuda":
             pipe.enable_model_cpu_offload()
+            try:
+                pipe.vae.enable_tiling()
+                pipe.vae.enable_slicing()
+            except Exception:
+                pass
             if img2img_pipe is not None:
                 try:
                     img2img_pipe.enable_model_cpu_offload()
+                    img2img_pipe.vae.enable_tiling()
+                    img2img_pipe.vae.enable_slicing()
                 except Exception:
                     pass
 

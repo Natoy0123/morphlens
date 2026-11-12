@@ -207,24 +207,24 @@ export default function CaptureViewport({
               <span>Reference Photo Loaded</span>
             </div>
 
-            <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
+            <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="min-h-[38px] bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="min-h-[44px] bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-100 px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Replace with another photo"
               >
-                <Upload size={13} />
+                <Upload size={14} />
                 <span>Replace</span>
               </button>
 
               <button
                 type="button"
                 onClick={onClearCapture}
-                className="min-h-[38px] bg-red-950/80 hover:bg-red-900/90 border border-red-800/80 text-red-200 hover:text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="min-h-[44px] bg-red-950/80 hover:bg-red-900/90 border border-red-800/80 text-red-200 hover:text-white px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Remove attached photo"
               >
-                <Trash2 size={13} className="text-red-400" />
+                <Trash2 size={14} className="text-red-400" />
                 <span>Remove</span>
               </button>
             </div>
@@ -261,25 +261,25 @@ export default function CaptureViewport({
               <button
                 type="button"
                 onClick={stopCamera}
-                className="w-10 h-10 rounded-full bg-black/75 hover:bg-black/90 border border-zinc-700 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-11 h-11 rounded-full bg-black/75 hover:bg-black/90 border border-zinc-700 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Close Camera"
                 aria-label="Close Camera"
               >
-                <X size={17} />
+                <X size={18} />
               </button>
 
-              <div className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-zinc-700 text-xs font-medium text-zinc-200">
+              <div className="px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-zinc-700 text-xs font-medium text-zinc-200">
                 Camera Active
               </div>
 
               <button
                 type="button"
                 onClick={toggleFacingMode}
-                className="w-10 h-10 rounded-full bg-black/75 hover:bg-black/90 border border-zinc-700 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
+                className="w-11 h-11 rounded-full bg-black/75 hover:bg-black/90 border border-zinc-700 flex items-center justify-center text-zinc-100 backdrop-blur-md transition-all active:scale-95 shadow-lg"
                 title="Flip Camera"
                 aria-label="Flip Camera"
               >
-                <SwitchCamera size={16} />
+                <SwitchCamera size={18} />
               </button>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function CaptureViewport({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full min-h-[42px] py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                  className="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
                 >
                   <Upload size={14} />
                   Upload Photo
@@ -340,7 +340,7 @@ export default function CaptureViewport({
             title="Upload Photo"
           >
             <ImageIcon size={17} />
-            <span className="text-[10px] font-semibold mt-0.5 text-zinc-400">File</span>
+            <span className="text-xs font-semibold mt-0.5 text-zinc-400">File</span>
           </button>
 
           {/* Shutter Button */}
@@ -361,7 +361,7 @@ export default function CaptureViewport({
             title="Close Camera"
           >
             <X size={17} />
-            <span className="text-[10px] font-semibold mt-0.5 text-zinc-400">Close</span>
+            <span className="text-xs font-semibold mt-0.5 text-zinc-400">Close</span>
           </button>
         </div>
       )}

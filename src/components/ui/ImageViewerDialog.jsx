@@ -143,7 +143,7 @@ export default function ImageViewerDialog({ isOpen, imageUrl, originalUrl, onClo
               <button
                 type="button"
                 onClick={() => setShowOriginal((prev) => !prev)}
-                className="px-2.5 py-1 text-[11px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg border border-zinc-700 transition-colors"
+                className="px-3 py-1.5 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg border border-zinc-700 transition-colors min-h-[32px]"
               >
                 {showOriginal ? 'Show Output' : 'Compare Original'}
               </button>
@@ -216,14 +216,14 @@ export default function ImageViewerDialog({ isOpen, imageUrl, originalUrl, onClo
             {/* Social Crop Presets */}
             <div className="flex items-center gap-1.5">
               <span className="text-zinc-400 font-medium flex items-center gap-1">
-                <Crop size={12} /> Format:
+                <Crop size={13} /> Format:
               </span>
               {SOCIAL_CROPS.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setSelectedCrop(c.id)}
-                  className={`px-2 py-0.5 rounded text-[11px] border font-medium transition-colors ${
+                  className={`px-2.5 py-1 rounded-lg text-xs border font-medium transition-colors min-h-[30px] ${
                     selectedCrop === c.id
                       ? 'bg-zinc-100 text-black border-white'
                       : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 border-zinc-700'
@@ -237,8 +237,8 @@ export default function ImageViewerDialog({ isOpen, imageUrl, originalUrl, onClo
             {/* Sliders */}
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <Sun size={12} className="text-zinc-400" />
-                <span className="text-zinc-400 text-[11px]">Brightness</span>
+                <Sun size={13} className="text-zinc-400" />
+                <span className="text-zinc-400 text-xs">Brightness</span>
                 <input
                   type="range"
                   min="80"
@@ -250,8 +250,8 @@ export default function ImageViewerDialog({ isOpen, imageUrl, originalUrl, onClo
               </div>
 
               <div className="flex items-center gap-1.5">
-                <Contrast size={12} className="text-zinc-400" />
-                <span className="text-zinc-400 text-[11px]">Contrast</span>
+                <Contrast size={13} className="text-zinc-400" />
+                <span className="text-zinc-400 text-xs">Contrast</span>
                 <input
                   type="range"
                   min="80"
@@ -263,8 +263,8 @@ export default function ImageViewerDialog({ isOpen, imageUrl, originalUrl, onClo
               </div>
 
               <div className="flex items-center gap-1.5">
-                <Sparkles size={12} className="text-zinc-400" />
-                <span className="text-zinc-400 text-[11px]">Warmth</span>
+                <Sparkles size={13} className="text-zinc-400" />
+                <span className="text-zinc-400 text-xs">Warmth</span>
                 <input
                   type="range"
                   min="-25"
@@ -278,10 +278,10 @@ export default function ImageViewerDialog({ isOpen, imageUrl, originalUrl, onClo
               <button
                 type="button"
                 onClick={resetAdjustments}
-                className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
+                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 min-h-[30px]"
                 title="Reset filters"
               >
-                <RotateCcw size={11} /> Reset
+                <RotateCcw size={12} /> Reset
               </button>
             </div>
           </div>

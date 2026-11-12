@@ -21,7 +21,7 @@ export default function FramingSelector({ currentMode, onSelectMode }) {
               type="button"
               aria-pressed={isActive}
               onClick={() => onSelectMode(mode.id)}
-              className={`w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] sm:text-xs font-semibold transition-all active:scale-95 sm:w-auto sm:flex-shrink-0 ${
+              className={`w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all active:scale-95 sm:w-auto sm:flex-shrink-0 ${
                 isActive
                   ? 'bg-zinc-800 text-white shadow-md border border-zinc-700/60'
                   : 'text-zinc-400 hover:text-white'

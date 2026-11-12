@@ -227,7 +227,7 @@ export default function App() {
             M
           </div>
           <span className="font-semibold text-sm tracking-tight text-white">MorphLens</span>
-          <span className="hidden min-[380px]:inline text-[11px] font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
+          <span className="hidden min-[380px]:inline text-xs font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
             Studio
           </span>
         </div>
@@ -237,27 +237,27 @@ export default function App() {
           <button
             type="button"
             onClick={() => setShowHistory(true)}
-            className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors active:scale-95 shadow-sm"
+            className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white px-3 py-1.5 min-h-[36px] rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors active:scale-95 shadow-sm"
             title="View portrait history"
           >
-            <History size={13} className="text-zinc-400" />
+            <History size={14} className="text-zinc-400" />
             <span>History</span>
           </button>
 
           <button
             type="button"
             onClick={() => setShowGuide(true)}
-            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white px-3 py-1.5 min-h-[36px] rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors active:scale-95 shadow-sm"
           >
-            <BookOpen size={13} />
+            <BookOpen size={14} />
             <span className="hidden sm:inline">Guide</span>
           </button>
 
-          <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800/80 px-2.5 py-1 rounded-full">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800/80 px-3 py-1.5 min-h-[36px] rounded-full">
             {apiKey ? (
-              <ShieldCheck size={13} className="text-emerald-400" />
+              <ShieldCheck size={14} className="text-emerald-400" />
             ) : (
-              <ShieldAlert size={13} className="text-zinc-400" />
+              <ShieldAlert size={14} className="text-zinc-400" />
             )}
             <span className="hidden sm:inline">{apiKey ? 'Key Connected' : 'Free Mode'}</span>
           </span>
@@ -351,35 +351,35 @@ export default function App() {
           type="button"
           onClick={() => setActiveStep('scan')}
           aria-current={activeStep === 'scan' ? 'page' : undefined}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[50px] w-1/3 py-1.5 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'scan'
               ? 'text-white font-semibold'
               : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
-          <Camera size={19} />
-          <span className="text-[11px]">1. Photo</span>
+          <Camera size={20} />
+          <span className="text-xs">1. Photo</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveStep('style')}
           aria-current={activeStep === 'style' ? 'page' : undefined}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[50px] w-1/3 py-1.5 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'style'
               ? 'text-white font-semibold'
               : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
-          <SlidersHorizontal size={19} />
-          <span className="text-[11px]">2. Style</span>
+          <SlidersHorizontal size={20} />
+          <span className="text-xs">2. Style</span>
         </button>
 
         <button
           type="button"
           disabled={!generatedImage}
           onClick={() => setActiveStep('result')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[50px] w-1/3 py-1.5 rounded-xl transition-all ${
+          className={`flex flex-col items-center justify-center gap-1 min-h-[52px] w-1/3 py-1.5 rounded-xl transition-all ${
             activeStep === 'result'
               ? 'text-white font-semibold'
               : generatedImage
@@ -387,8 +387,8 @@ export default function App() {
                 : 'text-zinc-700 cursor-not-allowed opacity-50'
           }`}
         >
-          <ImageIcon size={19} />
-          <span className="text-[11px]">3. Result</span>
+          <ImageIcon size={20} />
+          <span className="text-xs">3. Result</span>
         </button>
       </nav>
 

@@ -327,10 +327,11 @@ export default function PromptPanel({
             disabled
               ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800'
               : isGenerating
-                ? 'bg-zinc-800 text-zinc-200 cursor-wait animate-pulse'
+                ? 'bg-zinc-800 text-zinc-200 cursor-wait'
                 : 'bg-white hover:bg-zinc-200 text-black shadow-white/5'
           }`}
         >
+          {isGenerating && <Loader2 size={16} className="animate-spin stroke-[2.5]" />}
           <span>{ctaLabel}</span>
           {!disabled && !isGenerating && <ArrowRight size={16} />}
         </button>

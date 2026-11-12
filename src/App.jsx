@@ -1,9 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, SlidersHorizontal, Image as ImageIcon, RotateCcw, ShieldCheck, ShieldAlert } from 'lucide-react';
+import {
+  Camera,
+  SlidersHorizontal,
+  Image as ImageIcon,
+  RotateCcw,
+  ShieldCheck,
+  ShieldAlert,
+  BookOpen,
+} from 'lucide-react';
 import FramingSelector from './components/controls/FramingSelector';
 import CaptureViewport from './components/capture/CaptureViewport';
 import PromptPanel from './components/prompts/PromptPanel';
 import BeforeAfterSlider from './components/viewer/BeforeAfterSlider';
+import ConfirmDialog from './components/ui/ConfirmDialog';
+import StudioGuideDialog from './components/ui/StudioGuideDialog';
+import ImageViewerDialog from './components/ui/ImageViewerDialog';
+import Toast from './components/ui/Toast';
 import { synthesizePersona } from './api/generateApi';
 import { readApiKey, saveApiKey } from './api/apiKey';
 
@@ -31,6 +43,12 @@ export default function App() {
   const [retryUntil, setRetryUntil] = useState(0);
   const [clock, setClock] = useState(() => Date.now());
   const generatedRef = useRef(null);
+
+  // Dialog and feedback state
+  const [showRetakeConfirm, setShowRetakeConfirm] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Active step: 'scan' | 'style' | 'result'
   const [activeStep, setActiveStep] = useState('scan');
@@ -91,9 +109,10 @@ export default function App() {
     setError(null);
     clearCooldown();
     setActiveStep('style');
+    setToastMessage('Reference photo loaded successfully');
   };
 
-  const handleClearCapture = () => {
+  const executeClearCapture = () => {
     setCapturedImage(null);
     setCaptureVersion((version) => version + 1);
     replaceGeneratedImage(null);
@@ -102,6 +121,15 @@ export default function App() {
     setError(null);
     clearCooldown();
     setActiveStep('scan');
+    setShowRetakeConfirm(false);
+  };
+
+  const handleClearCaptureRequest = () => {
+    if (generatedImage) {
+      setShowRetakeConfirm(true);
+    } else {
+      executeClearCapture();
+    }
   };
 
   const handleApiKeyChange = (key) => {
@@ -109,6 +137,7 @@ export default function App() {
     setApiKey(stored);
     setError(null);
     clearCooldown();
+    setToastMessage(stored ? 'API key connected & stored' : 'API key disconnected');
   };
 
   const handleGenerate = async () => {
@@ -140,6 +169,7 @@ export default function App() {
       setRenderInfo({ model: result.model, promptUsed: result.promptUsed });
       clearCooldown();
       setActiveStep('result');
+      setToastMessage('Portrait synthesized successfully');
     } catch (err) {
       console.error('Portrait generation error:', err);
       setError(err instanceof Error ? err.message : 'Generation failed. Try again.');
@@ -159,7 +189,7 @@ export default function App() {
   return (
     <div className="h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-hidden bg-black text-zinc-100 flex flex-col justify-between antialiased selection:bg-zinc-800 selection:text-white">
       {/* Top Header */}
-      <header className="flex-shrink-0 h-12 px-4 sm:px-6 border-b border-zinc-900 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-between w-full">
+      <header className="flex-shrink-0 h-12 px-4 sm:px-6 border-b border-zinc-900 bg-black/95 backdrop-blur-xl z-40 flex items-center justify-between w-full">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-md bg-white flex items-center justify-center text-black font-black text-xs shadow-md">
             M
@@ -170,15 +200,24 @@ export default function App() {
           </span>
         </div>
 
-        {/* Header Right Status */}
+        {/* Header Right Controls */}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowGuide(true)}
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors"
+          >
+            <BookOpen size={13} />
+            <span className="hidden sm:inline">Guide</span>
+          </button>
+
           <span className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 bg-zinc-900/80 border border-zinc-800/80 px-2.5 py-1 rounded-full">
             {apiKey ? (
               <ShieldCheck size={13} className="text-emerald-400" />
             ) : (
               <ShieldAlert size={13} className="text-zinc-400" />
             )}
-            {apiKey ? 'API Key Active' : 'Free Reference Mode'}
+            <span className="hidden sm:inline">{apiKey ? 'Key Connected' : 'Free Mode'}</span>
           </span>
         </div>
       </header>
@@ -201,15 +240,17 @@ export default function App() {
                 promptUsed={renderInfo?.promptUsed}
                 onConnectKey={() => setActiveStep('style')}
                 onReset={handleReset}
+                onInspect={() => setShowImageViewer(true)}
+                onNotify={(msg) => setToastMessage(msg)}
               />
             ) : (
-              <div className="w-full min-w-0 min-h-full flex flex-col items-center justify-start lg:justify-center gap-2.5 overflow-x-hidden">
+              <div className="w-full min-w-0 min-h-full flex flex-col items-center justify-start lg:justify-center gap-2.5 overflow-x-hidden view-fade-enter">
                 {/* Viewfinder Lens */}
                 <CaptureViewport
                   framingMode={framingMode}
                   capturedImage={capturedImage}
                   onCapture={handleCapture}
-                  onClearCapture={handleClearCapture}
+                  onClearCapture={handleClearCaptureRequest}
                 />
 
                 {/* Framing Mode Selector */}
@@ -225,7 +266,7 @@ export default function App() {
 
           {/* CUSTOMIZER & PROMPT STAGE */}
           <div
-            className={`w-full min-w-0 h-full min-h-0 lg:col-span-5 flex flex-col justify-start overflow-y-auto overscroll-contain no-scrollbar pb-5 lg:pb-2 ${
+            className={`w-full min-w-0 h-full min-h-0 lg:col-span-5 flex flex-col justify-start overflow-y-auto overscroll-contain no-scrollbar pb-5 lg:pb-2 view-fade-enter ${
               activeStep === 'style' ? 'flex' : 'hidden lg:flex'
             }`}
           >
@@ -250,11 +291,11 @@ export default function App() {
 
                 <button
                   type="button"
-                  onClick={handleClearCapture}
+                  onClick={handleClearCaptureRequest}
                   className="px-3 py-2 min-h-[40px] rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 hover:text-white flex-shrink-0 active:scale-95"
                 >
                   <RotateCcw size={13} />
-                  Change Photo
+                  Change
                 </button>
               </div>
             ) : (
@@ -305,7 +346,7 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="flex-shrink-0 lg:hidden border-t border-zinc-900 bg-black/95 backdrop-blur-xl px-4 pt-1.5 safe-bottom flex items-center justify-around z-50">
+      <nav className="flex-shrink-0 lg:hidden border-t border-zinc-900 bg-black/95 backdrop-blur-xl px-4 pt-1.5 safe-bottom flex items-center justify-around z-40">
         <button
           type="button"
           onClick={() => setActiveStep('scan')}
@@ -331,7 +372,7 @@ export default function App() {
           }`}
         >
           <SlidersHorizontal size={19} />
-          <span className="text-[11px]">2. Style & Controls</span>
+          <span className="text-[11px]">2. Style</span>
         </button>
 
         <button
@@ -350,6 +391,36 @@ export default function App() {
           <span className="text-[11px]">3. Result</span>
         </button>
       </nav>
+
+      {/* Accessible Dialogs & Modals */}
+      <ConfirmDialog
+        isOpen={showRetakeConfirm}
+        title="Replace Reference Photo?"
+        message="You currently have a synthesized portrait. Taking or uploading a new photo will discard the current generated result."
+        confirmLabel="Replace Photo"
+        cancelLabel="Keep Current"
+        isDestructive={true}
+        onConfirm={executeClearCapture}
+        onCancel={() => setShowRetakeConfirm(false)}
+      />
+
+      <StudioGuideDialog isOpen={showGuide} onClose={() => setShowGuide(false)} />
+
+      <ImageViewerDialog
+        isOpen={showImageViewer}
+        imageUrl={generatedImage}
+        originalUrl={capturedImage}
+        onClose={() => setShowImageViewer(false)}
+        onDownload={() => {
+          const a = document.createElement('a');
+          a.href = generatedImage;
+          a.download = `morphlens-inspect-${Date.now()}.jpg`;
+          a.click();
+          setToastMessage('Downloaded full-resolution portrait');
+        }}
+      />
+
+      <Toast message={toastMessage} onClose={() => setToastMessage('')} />
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { AlertTriangle, Download, RotateCcw, Fingerprint, KeyRound, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Download, RotateCcw, Fingerprint, KeyRound, CheckCircle2, Maximize2 } from 'lucide-react';
 
 function modelLabel(model) {
   if (!model) return 'UNKNOWN MODEL';
   if (model.includes('kontext-pro')) return 'FLUX.1 KONTEXT PRO';
   if (model.includes('klein')) return 'FLUX.2 KLEIN 4B';
+  if (model.includes('flux')) return 'FLUX REFERENCE CONDITIONED';
   if (model.includes('classic')) return 'POLLINATIONS SANA';
   return model.replace('black-forest-labs/', '').toUpperCase();
 }
@@ -17,6 +18,8 @@ export default function BeforeAfterSlider({
   promptUsed = '',
   onConnectKey,
   onReset,
+  onInspect,
+  onNotify,
 }) {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -63,7 +66,7 @@ export default function BeforeAfterSlider({
           if (blob.type.includes('png')) extension = 'png';
           else if (blob.type.includes('jpeg')) extension = 'jpg';
         } catch {
-          // Keep the extension guessed from the URL; the download still works.
+          // Keep guessed extension
         }
       }
 
@@ -74,6 +77,8 @@ export default function BeforeAfterSlider({
       a.click();
       a.remove();
 
+      onNotify?.('Portrait downloaded successfully');
+
       if (revoke) {
         setTimeout(() => URL.revokeObjectURL(href), 1000);
       }
@@ -83,23 +88,23 @@ export default function BeforeAfterSlider({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between gap-3.5 bg-black select-none">
+    <div className="w-full flex-1 flex flex-col justify-between gap-3.5 bg-black select-none view-fade-enter">
       {/* Slider Viewport */}
       <div
         ref={containerRef}
         role="slider"
         tabIndex={0}
-        aria-label="Compare the input scan and the synthesized persona"
+        aria-label="Compare original reference and synthesized portrait"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(sliderPosition)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            setSliderPosition((position) => Math.max(0, position - 2));
+            setSliderPosition((pos) => Math.max(0, pos - 2));
           } else if (e.key === 'ArrowRight') {
             e.preventDefault();
-            setSliderPosition((position) => Math.min(100, position + 2));
+            setSliderPosition((pos) => Math.min(100, pos + 2));
           }
         }}
         onMouseDown={() => setIsDragging(true)}
@@ -112,16 +117,16 @@ export default function BeforeAfterSlider({
         }}
         onTouchEnd={() => setIsDragging(false)}
         onTouchMove={handleTouchMove}
-        className="relative w-full flex-1 min-h-[300px] sm:min-h-[460px] bg-zinc-950 border border-zinc-800/80 rounded-3xl overflow-hidden cursor-ew-resize shadow-2xl touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
+        className="relative w-full flex-1 min-h-[300px] sm:min-h-[460px] bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden cursor-ew-resize shadow-2xl touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
       >
         {/* Generated Image Base */}
         <img
           src={generatedImage}
-          alt="Synthesized Persona"
+          alt="Synthesized Portrait"
           className="absolute inset-0 w-full h-full object-contain pointer-events-none"
         />
 
-        {/* Original Scanned Image (Clipped) */}
+        {/* Original Reference Image (Clipped) */}
         {originalImage && (
           <div
             className="absolute inset-0 pointer-events-none"
@@ -139,20 +144,20 @@ export default function BeforeAfterSlider({
 
         {/* Divider Line & Handle */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)] pointer-events-none"
+          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(255,255,255,0.9)] pointer-events-none transition-[left] duration-75"
           style={{ left: `${sliderPosition}%` }}
         >
-          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white text-black shadow-2xl flex items-center justify-center text-xs font-bold">
+          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white text-black shadow-2xl flex items-center justify-center text-xs font-bold transition-transform active:scale-110">
             ↔
           </div>
         </div>
 
         {/* Reference and Result Labels */}
-        <div className="absolute top-3 left-3 bg-black/80 border border-zinc-700 text-zinc-200 text-xs font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
+        <div className="absolute top-3 left-3 bg-black/80 border border-zinc-700 text-zinc-200 text-[11px] font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
           REFERENCE
         </div>
         <div
-          className={`absolute top-3 right-3 bg-black/80 border text-xs font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1.5 ${
+          className={`absolute top-3 right-3 bg-black/80 border text-[11px] font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1.5 ${
             identityUsed
               ? 'border-emerald-500/40 text-emerald-300'
               : 'border-amber-500/40 text-amber-300'
@@ -165,27 +170,41 @@ export default function BeforeAfterSlider({
           )}
           {identityUsed ? 'PHOTO CONDITIONED' : 'PROMPT RENDER'}
         </div>
+
+        {/* Inspect / Fullscreen Button */}
+        {onInspect && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInspect();
+            }}
+            className="absolute bottom-3 right-3 px-3 py-1.5 rounded-full bg-black/80 hover:bg-black border border-zinc-700 text-zinc-200 text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all active:scale-95 shadow-lg"
+          >
+            <Maximize2 size={13} />
+            Inspect
+          </button>
+        )}
       </div>
 
-      {/* Result diagnostics + actions */}
+      {/* Diagnostics and Action deck */}
       <div className="flex flex-col gap-2.5 w-full pt-1">
         {!identityUsed && (
-          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/40 bg-amber-950/25 text-amber-100">
-            <AlertTriangle size={17} className="text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/40 bg-amber-950/25 text-amber-100 text-xs">
+            <AlertTriangle size={16} className="text-amber-400 mt-0.5 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-sm font-bold">Your photo was not used for this render.</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-amber-200/90">
-                Text-only generation cannot copy a face, so this person is a prompt invention.
-                Connect a key and regenerate to use your photo as the identity reference.
+              <p className="font-semibold">Text-Prompt Render</p>
+              <p className="mt-0.5 text-zinc-300 leading-relaxed">
+                Connect a Pollinations API key under settings to enable direct FLUX.1 Kontext Pro editing.
               </p>
               {onConnectKey && (
                 <button
                   type="button"
                   onClick={onConnectKey}
-                  className="mt-2 min-h-[38px] px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold inline-flex items-center gap-1.5 active:scale-95"
+                  className="mt-2 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold inline-flex items-center gap-1.5 active:scale-95"
                 >
-                  <KeyRound size={13} />
-                  CONNECT KEY / USE MY PHOTO
+                  <KeyRound size={12} />
+                  Connect Key
                 </button>
               )}
             </div>
@@ -204,30 +223,29 @@ export default function BeforeAfterSlider({
             <summary className="cursor-pointer font-mono uppercase tracking-wide hover:text-zinc-300">
               Prompt used
             </summary>
-            <p className="mt-1.5 max-h-28 overflow-y-auto p-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 leading-relaxed break-words">
+            <p className="mt-1.5 max-h-24 overflow-y-auto p-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 leading-relaxed break-words font-sans text-xs">
               {promptUsed}
             </p>
           </details>
         )}
 
-        <div className="flex gap-3 w-full">
+        <div className="flex gap-2.5 w-full">
           <button
             type="button"
             onClick={handleDownload}
-            className="flex-1 min-h-[52px] py-3.5 sm:py-4 px-3 sm:px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md whitespace-nowrap"
+            className="flex-1 min-h-[48px] py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md"
           >
-            <Download size={16} className="flex-shrink-0" />
-            <span className="sm:hidden">DOWNLOAD</span>
-            <span className="hidden sm:inline">DOWNLOAD PORTRAIT</span>
+            <Download size={15} />
+            <span>Download Portrait</span>
           </button>
 
           <button
             type="button"
             onClick={onReset}
-            className="min-h-[52px] py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-semibold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-98"
+            className="min-h-[48px] py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
           >
-            <RotateCcw size={15} />
-            EDIT PROMPT
+            <RotateCcw size={14} />
+            Change Style
           </button>
         </div>
       </div>

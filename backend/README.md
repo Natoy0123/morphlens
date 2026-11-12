@@ -32,7 +32,7 @@ Confirms the backend is online and reports GPU availability.
 {
   "status": "ok",
   "service": "MorphLens FLUX.1 Backend",
-  "model": "black-forest-labs/FLUX.1-schnell",
+  "model": "unsloth/FLUX.1-schnell",
   "device": "cuda",
   "ready": true
 }

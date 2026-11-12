@@ -40,7 +40,8 @@ app.add_middleware(
 )
 
 pipe = None
-MODEL_ID = "black-forest-labs/FLUX.1-schnell"
+# Use unsloth/FLUX.1-schnell (exact ungated public mirror, requires no Hugging Face login or token)
+MODEL_ID = os.environ.get("FLUX_MODEL_ID", "unsloth/FLUX.1-schnell")
 DEVICE = "cuda" if os.environ.get("FORCE_CPU") != "1" else "cpu"
 
 def load_pipeline():

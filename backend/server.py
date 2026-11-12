@@ -193,15 +193,17 @@ def generate(req: GenerateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
+    os.system("fuser -k 8000/tcp 2>/dev/null")
     load_pipeline()
     port = int(os.environ.get("PORT", 8000))
 
     try:
         from pycloudflared import try_cloudflare
         tunnel_url = try_cloudflare(port=port)
-        logger.info("=" * 60)
-        logger.info(f"PUBLIC CLOUDFLARE TUNNEL URL: {tunnel_url.tunnel}")
-        logger.info("=" * 60)
+        print("\n" + "=" * 60)
+        print("COPY THIS TUNNEL URL INTO MORPHLENS:")
+        print(tunnel_url.tunnel)
+        print("=" * 60 + "\n")
     except Exception as e:
         logger.warning(f"Could not initialize Cloudflare tunnel: {e}")
 

@@ -40,7 +40,7 @@ export const STYLE_PRESETS = [
   {
     id: 'boardroom-navy',
     name: 'Navy Suit',
-    icon: '👔',
+    icon: 'Shirt',
     category: 'Corporate',
     framingCompatibility: ['headshot', 'half_body', 'full_body'],
     prompt:
@@ -51,7 +51,7 @@ export const STYLE_PRESETS = [
   {
     id: 'executive',
     name: 'Charcoal Blazer',
-    icon: '💼',
+    icon: 'Briefcase',
     category: 'Corporate',
     framingCompatibility: ['headshot', 'half_body', 'full_body'],
     prompt:
@@ -62,7 +62,7 @@ export const STYLE_PRESETS = [
   {
     id: 'tech-founder',
     name: 'Tech Founder',
-    icon: '💻',
+    icon: 'Laptop',
     category: 'Corporate',
     framingCompatibility: ['headshot', 'half_body'],
     prompt:
@@ -73,7 +73,7 @@ export const STYLE_PRESETS = [
   {
     id: 'medical-scrubs',
     name: 'Doctor Coat',
-    icon: '🩺',
+    icon: 'Stethoscope',
     category: 'Corporate',
     framingCompatibility: ['headshot', 'half_body'],
     prompt:
@@ -86,7 +86,7 @@ export const STYLE_PRESETS = [
   {
     id: 'natural-enhance',
     name: 'Natural Studio',
-    icon: '✨',
+    icon: 'Sparkles',
     category: 'Editorial',
     framingCompatibility: ['headshot', 'half_body', 'full_body', 'auto'],
     prompt:
@@ -97,7 +97,7 @@ export const STYLE_PRESETS = [
   {
     id: 'retro-90s',
     name: '35mm Film',
-    icon: '📸',
+    icon: 'Camera',
     category: 'Editorial',
     framingCompatibility: ['headshot', 'half_body', 'full_body'],
     prompt:
@@ -108,7 +108,7 @@ export const STYLE_PRESETS = [
   {
     id: 'film-noir',
     name: 'Noir B&W',
-    icon: '🎞️',
+    icon: 'Film',
     category: 'Editorial',
     framingCompatibility: ['headshot', 'half_body', 'full_body'],
     prompt:
@@ -119,7 +119,7 @@ export const STYLE_PRESETS = [
   {
     id: 'vogue-studio',
     name: 'Vogue Minimal',
-    icon: '🏛️',
+    icon: 'Building2',
     category: 'Editorial',
     framingCompatibility: ['headshot', 'half_body', 'auto'],
     prompt:
@@ -132,7 +132,7 @@ export const STYLE_PRESETS = [
   {
     id: 'golden-hour',
     name: 'Golden Hour',
-    icon: '🌅',
+    icon: 'Sun',
     category: 'Lifestyle',
     framingCompatibility: ['headshot', 'half_body', 'full_body'],
     prompt:
@@ -143,7 +143,7 @@ export const STYLE_PRESETS = [
   {
     id: 'cafe-ambient',
     name: 'Café Casual',
-    icon: '☕',
+    icon: 'Coffee',
     category: 'Lifestyle',
     framingCompatibility: ['headshot', 'half_body'],
     prompt:
@@ -154,7 +154,7 @@ export const STYLE_PRESETS = [
   {
     id: 'urban-street',
     name: 'Streetwear',
-    icon: '🏙️',
+    icon: 'Compass',
     category: 'Lifestyle',
     framingCompatibility: ['half_body', 'full_body', 'auto'],
     prompt:
@@ -167,7 +167,7 @@ export const STYLE_PRESETS = [
   {
     id: 'cyberpunk',
     name: 'Cyberpunk',
-    icon: '⚡',
+    icon: 'Zap',
     category: 'Thematic',
     framingCompatibility: ['headshot', 'half_body', 'full_body'],
     prompt:
@@ -178,7 +178,7 @@ export const STYLE_PRESETS = [
   {
     id: 'fantasy-armor',
     name: 'Mythic Armor',
-    icon: '⚔️',
+    icon: 'Shield',
     category: 'Thematic',
     framingCompatibility: ['half_body', 'full_body'],
     prompt:
@@ -189,7 +189,7 @@ export const STYLE_PRESETS = [
   {
     id: 'anime-action',
     name: 'Anime Visual',
-    icon: '🎨',
+    icon: 'Palette',
     category: 'Thematic',
     framingCompatibility: ['headshot', 'half_body', 'full_body'],
     prompt:

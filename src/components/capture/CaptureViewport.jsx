@@ -268,8 +268,8 @@ export default function CaptureViewport({
                 <X size={17} />
               </button>
 
-              <div className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-zinc-700 text-xs font-mono text-zinc-200">
-                CAMERA ACTIVE
+              <div className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-zinc-700 text-xs font-medium text-zinc-200">
+                Camera Active
               </div>
 
               <button

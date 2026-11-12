@@ -6,17 +6,49 @@ import {
   AlertCircle,
   ExternalLink,
   Check,
+  Plus,
   ArrowRight,
   Trash2,
   Loader2,
   Sparkles,
   Tag,
   RotateCcw,
+  UserCheck,
+  Shirt,
+  Briefcase,
+  Laptop,
+  Stethoscope,
+  Camera,
+  Film,
+  Building2,
+  Sun,
+  Coffee,
+  Compass,
+  Zap,
+  Shield,
+  Palette,
 } from 'lucide-react';
 import { PRESET_CATEGORIES, STYLE_PRESETS } from '../../store/presets';
 import { isValidApiKey, maskApiKey } from '../../api/apiKey';
 import { validateApiKey } from '../../api/generateApi';
 import { enhancePrompt } from '../../api/promptEnhancer';
+
+const PRESET_ICON_MAP = {
+  Shirt,
+  Briefcase,
+  Laptop,
+  Stethoscope,
+  Sparkles,
+  Camera,
+  Film,
+  Building2,
+  Sun,
+  Coffee,
+  Compass,
+  Zap,
+  Shield,
+  Palette,
+};
 
 const STYLE_TAGS = [
   'Studio Rim Lighting',
@@ -137,12 +169,12 @@ export default function PromptPanel({
   const isBlocked = retryAfter > 0;
   const disabled = isGenerating || emptyPrompt || isBlocked;
 
-  let ctaLabel = 'GENERATE PORTRAIT';
-  if (emptyPrompt) ctaLabel = 'DESCRIBE YOUR PORTRAIT';
-  else if (isGenerating) ctaLabel = 'SYNTHESIZING PORTRAIT…';
-  else if (isBlocked) ctaLabel = `RETRY IN ${retryAfter}S`;
-  else if (hasCapturedSubject) ctaLabel = 'REFACTOR PORTRAIT';
-  else ctaLabel = 'GENERATE FROM PROMPT';
+  let ctaLabel = 'Generate Portrait';
+  if (emptyPrompt) ctaLabel = 'Describe Your Portrait';
+  else if (isGenerating) ctaLabel = 'Synthesizing Portrait...';
+  else if (isBlocked) ctaLabel = `Retry in ${retryAfter}s`;
+  else if (hasCapturedSubject) ctaLabel = 'Generate Portrait';
+  else ctaLabel = 'Generate Portrait';
 
   const filteredPresets =
     selectedCategory === 'All'
@@ -163,7 +195,9 @@ export default function PromptPanel({
                   className="w-8 h-8 rounded-lg object-cover border border-zinc-700 flex-shrink-0"
                 />
               ) : (
-                <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
+                  <UserCheck size={14} className="text-zinc-300" />
+                </div>
               )}
               <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs font-semibold text-zinc-200">
@@ -324,10 +358,12 @@ export default function PromptPanel({
             })}
           </div>
 
-          {/* Horizontal Preset Filmstrip */}
+          {/* Horizontal Preset Filmstrip with Vector SVG Icons */}
           <div className="flex items-stretch gap-2 overflow-x-auto no-scrollbar py-1 overscroll-x-contain">
             {filteredPresets.map((preset) => {
               const isSelected = selectedPreset === preset.id;
+              const IconComponent = PRESET_ICON_MAP[preset.icon] || Sparkles;
+
               return (
                 <button
                   key={preset.id}
@@ -338,16 +374,16 @@ export default function PromptPanel({
                       onPreserveEnvironmentChange?.(preset.preserveEnvironment);
                     }
                   }}
-                  className={`w-28 sm:w-32 flex-shrink-0 p-2 sm:p-2.5 rounded-xl border text-left transition-all active:scale-95 flex flex-col justify-between gap-1.5 ${
+                  className={`w-28 sm:w-32 flex-shrink-0 p-2 sm:p-2.5 rounded-xl border text-left transition-all active:scale-95 flex flex-col justify-between gap-2 ${
                     isSelected
                       ? 'border-white bg-zinc-800/90 text-white shadow-md ring-1 ring-white/20'
                       : 'border-zinc-800/80 bg-zinc-900/50 hover:bg-zinc-900 hover:border-zinc-700 text-zinc-300'
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className="text-lg leading-none" role="img" aria-label={preset.name}>
-                      {preset.icon || '✨'}
-                    </span>
+                    <div className="w-7 h-7 rounded-lg bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-200">
+                      <IconComponent size={15} />
+                    </div>
                     {isSelected && (
                       <div className="w-3.5 h-3.5 rounded-full bg-white text-black flex items-center justify-center flex-shrink-0 shadow">
                         <Check size={9} className="stroke-[3]" />
@@ -388,7 +424,7 @@ export default function PromptPanel({
               {isEnhancing ? (
                 <>
                   <Loader2 size={12} className="animate-spin text-zinc-300" />
-                  <span>Enhancing…</span>
+                  <span>Enhancing...</span>
                 </>
               ) : (
                 <>
@@ -435,14 +471,18 @@ export default function PromptPanel({
                       key={tag}
                       type="button"
                       onClick={() => handleToggleTag(tag)}
-                      className={`px-2 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-95 ${
+                      className={`px-2 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-95 flex items-center gap-1 ${
                         isApplied
                           ? 'border-zinc-400 bg-zinc-800 text-white font-semibold'
                           : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                       }`}
                     >
-                      {isApplied ? '✓ ' : '+ '}
-                      {tag}
+                      {isApplied ? (
+                        <Check size={11} className="stroke-[2.5]" />
+                      ) : (
+                        <Plus size={11} />
+                      )}
+                      <span>{tag}</span>
                     </button>
                   );
                 })}
@@ -498,7 +538,7 @@ export default function PromptPanel({
           type="button"
           disabled={disabled}
           onClick={onGenerate}
-          className={`w-full min-h-[46px] sm:min-h-[48px] py-2.5 sm:py-3 px-5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm tracking-wide uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg ${
+          className={`w-full min-h-[46px] sm:min-h-[48px] py-2.5 sm:py-3 px-5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm tracking-wide flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg ${
             disabled
               ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800'
               : isGenerating
@@ -519,13 +559,13 @@ export default function PromptPanel({
             <KeyRound size={11} className={apiKey ? 'text-emerald-400' : 'text-zinc-500'} />
             <span>{apiKey ? `Key Connected (${maskApiKey(apiKey)})` : 'Pollinations Key'}</span>
           </button>
-          <span className="text-[10px] font-mono text-zinc-600">FLUX.1 Kontext</span>
+          <span className="text-[10px] font-mono text-zinc-600">Studio</span>
         </div>
 
         {showAccess && (
           <div className="p-3 bg-zinc-900/90 border border-zinc-800 rounded-xl sm:rounded-2xl space-y-2 animate-in slide-in-from-bottom-2 duration-150">
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Adding a Pollinations API key enables direct high-speed FLUX.1 Kontext Pro editing without queue limits.
+              Adding a Pollinations API key enables direct high-speed portrait editing without queue limits.
             </p>
             <div className="flex gap-2">
               <input

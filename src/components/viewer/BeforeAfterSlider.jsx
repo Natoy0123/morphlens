@@ -1,13 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { AlertTriangle, Download, RotateCcw, Fingerprint, KeyRound, CheckCircle2, Maximize2 } from 'lucide-react';
+import { AlertTriangle, Download, RotateCcw, Fingerprint, KeyRound, CheckCircle2, Maximize2, MoveHorizontal } from 'lucide-react';
 
 function modelLabel(model) {
-  if (!model) return 'UNKNOWN MODEL';
-  if (model.includes('kontext-pro')) return 'FLUX.1 KONTEXT PRO';
-  if (model.includes('klein')) return 'FLUX.2 KLEIN 4B';
-  if (model.includes('flux')) return 'FLUX REFERENCE CONDITIONED';
-  if (model.includes('classic')) return 'POLLINATIONS SANA';
-  return model.replace('black-forest-labs/', '').toUpperCase();
+  if (!model) return 'Standard Model';
+  if (model.includes('kontext-pro')) return 'FLUX.1 Kontext Pro';
+  if (model.includes('klein')) return 'FLUX.2 Klein';
+  if (model.includes('flux')) return 'FLUX Reference Model';
+  if (model.includes('classic')) return 'SANA Synthesis';
+  return model.replace('black-forest-labs/', '');
 }
 
 export default function BeforeAfterSlider({
@@ -144,31 +144,31 @@ export default function BeforeAfterSlider({
 
         {/* Divider Line & Handle */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(255,255,255,0.9)] pointer-events-none transition-[left] duration-75"
+          className="absolute top-0 bottom-0 w-0.5 bg-white/90 pointer-events-none transition-[left] duration-75"
           style={{ left: `${sliderPosition}%` }}
         >
-          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white text-black shadow-2xl flex items-center justify-center text-xs font-bold transition-transform active:scale-110">
-            ↔
+          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-white text-black shadow-xl border border-zinc-300 flex items-center justify-center transition-transform active:scale-110">
+            <MoveHorizontal size={13} className="stroke-[2.5]" />
           </div>
         </div>
 
         {/* Reference and Result Labels */}
-        <div className="absolute top-3 left-3 bg-black/80 border border-zinc-700 text-zinc-200 text-[11px] font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none">
-          REFERENCE
+        <div className="absolute top-3 left-3 bg-black/80 border border-zinc-700 text-zinc-200 text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-md pointer-events-none">
+          Reference
         </div>
         <div
-          className={`absolute top-3 right-3 bg-black/80 border text-[11px] font-mono font-medium px-2.5 py-1.5 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1.5 ${
+          className={`absolute top-3 right-3 bg-black/80 border text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-md pointer-events-none flex items-center gap-1.5 ${
             identityUsed
               ? 'border-emerald-500/40 text-emerald-300'
-              : 'border-amber-500/40 text-amber-300'
+              : 'border-zinc-700 text-zinc-300'
           }`}
         >
           {identityUsed ? (
             <Fingerprint size={12} className="text-emerald-400 flex-shrink-0" />
           ) : (
-            <CheckCircle2 size={12} className="text-amber-400 flex-shrink-0" />
+            <CheckCircle2 size={12} className="text-zinc-400 flex-shrink-0" />
           )}
-          {identityUsed ? 'PHOTO CONDITIONED' : 'PROMPT RENDER'}
+          <span>{identityUsed ? 'Photo Applied' : 'Prompt Only'}</span>
         </div>
 
         {/* Inspect / Fullscreen Button */}
@@ -190,18 +190,18 @@ export default function BeforeAfterSlider({
       {/* Diagnostics and Action deck */}
       <div className="flex flex-col gap-2.5 w-full pt-1">
         {!identityUsed && (
-          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/40 bg-amber-950/25 text-amber-100 text-xs">
-            <AlertTriangle size={16} className="text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-zinc-800 bg-zinc-900/60 text-zinc-200 text-xs">
+            <AlertTriangle size={16} className="text-zinc-400 mt-0.5 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="font-semibold">Text-Prompt Render</p>
-              <p className="mt-0.5 text-zinc-300 leading-relaxed">
-                Connect a Pollinations API key under settings to enable direct FLUX.1 Kontext Pro editing.
+              <p className="font-semibold text-zinc-100">Direct Synthesis Mode</p>
+              <p className="mt-0.5 text-zinc-400 leading-relaxed">
+                Add an API key to enable instant FLUX image-to-image portrait transformation.
               </p>
               {onConnectKey && (
                 <button
                   type="button"
                   onClick={onConnectKey}
-                  className="mt-2 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold inline-flex items-center gap-1.5 active:scale-95"
+                  className="mt-2 px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-semibold inline-flex items-center gap-1.5 active:scale-95 shadow-sm"
                 >
                   <KeyRound size={12} />
                   Connect Key
@@ -211,10 +211,10 @@ export default function BeforeAfterSlider({
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-2 px-1 text-xs font-mono text-zinc-400">
-          <span className="truncate">{modelLabel(model)}</span>
-          <span className={identityUsed ? 'text-emerald-400' : 'text-amber-400'}>
-            {identityUsed ? 'PHOTO REFERENCE SENT' : 'TEXT ONLY'}
+        <div className="flex items-center justify-between gap-2 px-1 text-xs text-zinc-400">
+          <span className="truncate font-medium">{modelLabel(model)}</span>
+          <span className={identityUsed ? 'text-emerald-400 font-medium' : 'text-zinc-400'}>
+            {identityUsed ? 'Photo Reference Linked' : 'Prompt Only'}
           </span>
         </div>
 

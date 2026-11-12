@@ -18,6 +18,7 @@ import sys
 import base64
 import random
 import logging
+import traceback
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -29,7 +30,7 @@ from PIL import Image
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s: %(message)s")
 logger = logging.getLogger("morphlens-server")
 
-app = FastAPI(title="MorphLens FLUX.1 GGUF Backend", version="1.1.0")
+app = FastAPI(title="MorphLens FLUX.1 GGUF Backend", version="1.2.0")
 
 # Enable comprehensive CORS
 app.add_middleware(
@@ -51,13 +52,24 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 pipe = None
 img2img_pipe = None
+load_error = None
 MODEL_ID = "FLUX.1-schnell-GGUF-Q4"
 DEVICE = "cuda" if os.environ.get("FORCE_CPU") != "1" else "cpu"
 
 def load_pipeline():
-    global pipe, img2img_pipe, DEVICE
+    global pipe, img2img_pipe, DEVICE, load_error
     import torch
-    from diffusers import FluxPipeline, FluxImg2ImgPipeline, FluxTransformer2DModel, GGUFQuantizationConfig
+
+    # Ensure gguf is available
+    try:
+        import gguf
+    except ImportError:
+        logger.info("gguf package not found. Installing automatically...")
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "gguf>=0.10.0"])
+        import gguf
+
+    from diffusers import FluxPipeline, FluxTransformer2DModel, GGUFQuantizationConfig
 
     if not torch.cuda.is_available() and DEVICE != "cpu":
         logger.warning("CUDA not detected. Falling back to CPU mode.")
@@ -74,20 +86,35 @@ def load_pipeline():
             torch_dtype=dtype,
         )
 
+        logger.info("Assembling pipeline from unsloth/FLUX.1-schnell...")
         pipe = FluxPipeline.from_pretrained(
             "unsloth/FLUX.1-schnell",
             transformer=transformer,
             torch_dtype=dtype,
         )
 
+        try:
+            from diffusers import FluxImg2ImgPipeline
+            # Share pipeline components for zero-copy img2img support BEFORE offload hooks
+            img2img_pipe = FluxImg2ImgPipeline(**pipe.components)
+            logger.info("FluxImg2ImgPipeline created successfully.")
+        except Exception as img_err:
+            logger.warning(f"Img2Img pipeline initialization skipped: {img_err}")
+            img2img_pipe = None
+
         if DEVICE == "cuda":
             pipe.enable_model_cpu_offload()
+            if img2img_pipe is not None:
+                try:
+                    img2img_pipe.enable_model_cpu_offload()
+                except Exception:
+                    pass
 
-        # Share pipeline components for zero-copy img2img support
-        img2img_pipe = FluxImg2ImgPipeline(**pipe.components)
-        logger.info("FLUX.1 GGUF Q4 pipelines loaded successfully!")
+        load_error = None
+        logger.info("FLUX.1 GGUF Q4 pipeline loaded successfully and ready for inference!")
     except Exception as e:
-        logger.error(f"Error loading FLUX GGUF model: {e}", exc_info=True)
+        load_error = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+        logger.error(f"Error loading FLUX GGUF model: {load_error}")
         pipe = None
         img2img_pipe = None
 
@@ -111,6 +138,8 @@ def health_check():
         "model": MODEL_ID,
         "device": DEVICE,
         "ready": pipe is not None,
+        "has_img2img": img2img_pipe is not None,
+        "error": load_error,
     }
 
 def decode_base64_image(data_uri: str) -> Image.Image:
@@ -129,7 +158,10 @@ def encode_pil_to_base64(image: Image.Image) -> str:
 @app.post("/generate")
 def generate(req: GenerateRequest):
     if pipe is None:
-        raise HTTPException(status_code=503, detail="Model pipeline is not ready yet.")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Model pipeline is not ready yet. Error: {load_error or 'Initializing...'}"
+        )
 
     import torch
 
@@ -138,7 +170,7 @@ def generate(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
 
     active_seed = req.seed if (req.seed is not None and req.seed >= 0) else random.randint(0, 2**32 - 1)
-    generator = torch.Generator(device=DEVICE if DEVICE != "cuda" else "cpu").manual_seed(active_seed)
+    generator = torch.Generator(device="cpu").manual_seed(active_seed)
 
     # Snap dimensions to multiples of 16
     width = max(256, min(1536, ((req.width or 1024) // 16) * 16))
@@ -153,8 +185,6 @@ def generate(req: GenerateRequest):
             init_image = decode_base64_image(req.image)
             init_image = init_image.resize((width, height), Image.Resampling.LANCZOS)
             
-            # Map likeness (0.5 - 1.0) to img2img transformation strength (0.50 - 0.75)
-            # High likeness = lower strength (preserves subject face/pose more strongly)
             likeness_val = max(0.1, min(1.0, req.likeness or 0.85))
             strength = max(0.40, min(0.85, 1.15 - (likeness_val * 0.6)))
 

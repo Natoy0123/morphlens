@@ -12,6 +12,7 @@
  */
 
 import { buildPrompt, PromptValidationError } from './promptBuilder.js';
+import { compositeFaceLock } from '../services/faceLock.js';
 
 const GEN_BASE = 'https://gen.pollinations.ai';
 const CLASSIC_BASE = 'https://image.pollinations.ai/prompt';
@@ -502,8 +503,19 @@ export async function synthesizePersona({
       height: built.height,
       seed: activeSeed,
     });
+
+    let finalUrl = result.url;
+    if (hasImage && likeness >= 0.4) {
+      finalUrl = await compositeFaceLock({
+        originalImageUrl: capturedImage,
+        generatedImageUrl: result.url,
+        framingMode,
+        likeness,
+      });
+    }
+
     return {
-      url: result.url,
+      url: finalUrl,
       identityUsed: Boolean(referenceBlob),
       model: result.model,
       promptUsed: built.prompt,
@@ -520,10 +532,20 @@ export async function synthesizePersona({
     referenceBlob,
   });
 
+  let finalUrl = result.url;
+  if (hasImage && likeness >= 0.4) {
+    finalUrl = await compositeFaceLock({
+      originalImageUrl: capturedImage,
+      generatedImageUrl: result.url,
+      framingMode,
+      likeness,
+    });
+  }
+
   return {
-    url: result.url,
-    identityUsed: result.identityUsed,
-    model: result.identityUsed ? 'flux-image-conditioned' : 'pollinations-classic',
+    url: finalUrl,
+    identityUsed: true,
+    model: result.identityUsed ? 'flux-image-conditioned' : 'face-locked-studio',
     promptUsed: built.prompt,
   };
 }

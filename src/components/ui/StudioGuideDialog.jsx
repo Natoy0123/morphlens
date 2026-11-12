@@ -63,28 +63,28 @@ export default function StudioGuideDialog({ isOpen, onClose }) {
             <Camera size={13} className="text-zinc-400" />
             1. Framing Modes
           </h3>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
-              <span className="font-semibold text-white block">Headshot (1:1)</span>
-              <span className="text-zinc-400 text-[11px] leading-relaxed">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
+              <span className="font-semibold text-white block text-sm">Headshot (1:1)</span>
+              <span className="text-zinc-300 text-xs leading-relaxed mt-0.5 block">
                 Crown to clavicle. Ideal for avatars, corporate headshots, and clear facial detail.
               </span>
             </div>
-            <div className="p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
-              <span className="font-semibold text-white block">Half Body (4:5)</span>
-              <span className="text-zinc-400 text-[11px] leading-relaxed">
+            <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
+              <span className="font-semibold text-white block text-sm">Half Body (4:5)</span>
+              <span className="text-zinc-300 text-xs leading-relaxed mt-0.5 block">
                 Head to waist. Perfect for tailored suits, jackets, and arm posture.
               </span>
             </div>
-            <div className="p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
-              <span className="font-semibold text-white block">Full Body (9:16)</span>
-              <span className="text-zinc-400 text-[11px] leading-relaxed">
+            <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
+              <span className="font-semibold text-white block text-sm">Full Body (9:16)</span>
+              <span className="text-zinc-300 text-xs leading-relaxed mt-0.5 block">
                 Head to toe. Captures full standing stance, attire, and environmental scale.
               </span>
             </div>
-            <div className="p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
-              <span className="font-semibold text-white block">Three-Quarter (3:4)</span>
-              <span className="text-zinc-400 text-[11px] leading-relaxed">
+            <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-xl">
+              <span className="font-semibold text-white block text-sm">Three-Quarter (3:4)</span>
+              <span className="text-zinc-300 text-xs leading-relaxed mt-0.5 block">
                 Head to mid-thigh. Classic magazine editorial portrait framing.
               </span>
             </div>
@@ -97,30 +97,30 @@ export default function StudioGuideDialog({ isOpen, onClose }) {
             <Lock size={13} className="text-zinc-400" />
             2. Preservation Controls
           </h3>
-          <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-xl space-y-2 text-xs">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+          <div className="p-3.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl space-y-2.5 text-xs">
+            <div className="flex items-start gap-2.5">
+              <CheckCircle2 size={15} className="text-emerald-400 mt-0.5 flex-shrink-0" />
               <div>
-                <strong className="text-zinc-200 block">Face & Identity Lock:</strong>
-                <span className="text-zinc-400 text-[11px]">
+                <strong className="text-zinc-100 block text-xs">Face & Identity Lock:</strong>
+                <span className="text-zinc-300 text-xs leading-relaxed mt-0.5 block">
                   Instructs the conditioning model to retain your facial structure, eyes, nose, skin tone, and expression from the reference photo.
                 </span>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2.5">
+              <CheckCircle2 size={15} className="text-emerald-400 mt-0.5 flex-shrink-0" />
               <div>
-                <strong className="text-zinc-200 block">Stance & Body Pose Lock:</strong>
-                <span className="text-zinc-400 text-[11px]">
+                <strong className="text-zinc-100 block text-xs">Stance & Body Pose Lock:</strong>
+                <span className="text-zinc-300 text-xs leading-relaxed mt-0.5 block">
                   Maintains your exact body proportions, shoulder angle, posture, and head tilt instead of inventing a new random pose.
                 </span>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2.5">
+              <CheckCircle2 size={15} className="text-emerald-400 mt-0.5 flex-shrink-0" />
               <div>
-                <strong className="text-zinc-200 block">Preserve Background:</strong>
-                <span className="text-zinc-400 text-[11px]">
+                <strong className="text-zinc-100 block text-xs">Preserve Background:</strong>
+                <span className="text-zinc-300 text-xs leading-relaxed mt-0.5 block">
                   Keeps the room, lighting, and surroundings from your original photo while restyling your attire or enhancing quality.
                 </span>
               </div>
@@ -134,7 +134,7 @@ export default function StudioGuideDialog({ isOpen, onClose }) {
             <Sliders size={13} className="text-zinc-400" />
             3. Photography Tips for Best Results
           </h3>
-          <ul className="text-xs text-zinc-400 space-y-1 list-disc list-inside bg-zinc-950/40 p-3 rounded-xl border border-zinc-800/60 leading-relaxed text-[11px]">
+          <ul className="text-xs text-zinc-300 space-y-1.5 list-disc list-inside bg-zinc-950/40 p-3.5 rounded-xl border border-zinc-800/60 leading-relaxed">
             <li>Ensure balanced lighting on your face without harsh backlit shadows.</li>
             <li>Center your subject inside the viewport alignment guides.</li>
             <li>For high likeness retention, keep the Identity Fidelity slider at 80%–95%.</li>

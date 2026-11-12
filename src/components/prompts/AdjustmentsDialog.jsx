@@ -455,13 +455,24 @@ export default function AdjustmentsDialog({
               {endpointError && <p className="text-xs text-red-300 font-medium">{endpointError}</p>}
               {endpointSuccess && <p className="text-xs text-emerald-300 font-medium">{endpointSuccess}</p>}
 
-              <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 space-y-1">
-                <div className="flex items-center gap-1.5 font-semibold text-zinc-200">
-                  <FileCode size={13} className="text-zinc-400" />
-                  <span>Free Google Colab Backend</span>
+              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-semibold text-zinc-200">
+                    <FileCode size={14} className="text-zinc-400" />
+                    <span>Free Google Colab Backend</span>
+                  </div>
+                  <a
+                    href="https://colab.research.google.com/github/Natoy0123/morphlens/blob/main/backend/colab_flux_server.ipynb"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-colors shadow-sm"
+                  >
+                    <span>1-Click Open in Colab</span>
+                    <ExternalLink size={12} />
+                  </a>
                 </div>
                 <p className="text-zinc-400 text-xs leading-relaxed">
-                  Upload <code className="text-zinc-200 font-mono bg-zinc-800 px-1 py-0.5 rounded">backend/colab_flux_server.ipynb</code> to Google Colab with a free T4 GPU to generate with FLUX.1 [schnell] in 3 seconds.
+                  Click the button above to launch FLUX.1 [schnell] on a free Google T4 GPU. Once running, copy the printed Cloudflare Tunnel URL and paste it into the field above.
                 </p>
               </div>
 

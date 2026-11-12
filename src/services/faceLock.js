@@ -144,24 +144,24 @@ export async function compositeFaceLock({
       const grad = mCtx.createRadialGradient(
         genFace.cx,
         genFace.cy,
-        Math.min(genFace.rx, genFace.ry) * 0.45,
+        Math.min(genFace.rx, genFace.ry) * 0.35,
         genFace.cx,
         genFace.cy,
-        Math.max(genFace.rx, genFace.ry) * 1.15
+        Math.min(genFace.rx, genFace.ry) * 0.85
       );
       grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
-      grad.addColorStop(0.65, 'rgba(0, 0, 0, 0.85)');
-      grad.addColorStop(0.85, 'rgba(0, 0, 0, 0.35)');
+      grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.85)');
+      grad.addColorStop(0.85, 'rgba(0, 0, 0, 0.2)');
       grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
       mCtx.save();
       mCtx.translate(genFace.cx, genFace.cy);
-      mCtx.scale(1, genFace.ry / (genFace.rx || 1));
+      mCtx.scale(1, (genFace.ry * 0.9) / (genFace.rx || 1));
       mCtx.translate(-genFace.cx, -genFace.cy);
 
       mCtx.fillStyle = grad;
       mCtx.beginPath();
-      mCtx.arc(genFace.cx, genFace.cy, genFace.rx * 1.25, 0, Math.PI * 2);
+      mCtx.arc(genFace.cx, genFace.cy, genFace.rx * 0.85, 0, Math.PI * 2);
       mCtx.fill();
       mCtx.restore();
     }

@@ -106,11 +106,11 @@ function identityDirective(likeness, { preserveBody = true, preservePose = true,
   const value = Number.isFinite(likeness) ? likeness : 0.85;
   const directives = [];
 
-  if (value >= 0.8) {
+  if (value >= 0.75) {
     directives.push(
       'Preserve the exact same face, facial features, hairstyle, skin tone, body build, and pose from the reference photo. Do not generate a different person.'
     );
-  } else if (value >= 0.55) {
+  } else if (value >= 0.5) {
     directives.push(
       "Preserve the same face and general body proportions from the reference photo while restyling the outfit and environment. Do not change the person's identity."
     );
@@ -120,13 +120,13 @@ function identityDirective(likeness, { preserveBody = true, preservePose = true,
     );
   }
 
-  if (preservePose && value >= 0.55) {
+  if (preservePose && value >= 0.5 && value < 0.75) {
     directives.push(
       'Maintain the exact physical body position, head angle, posture, and stance of the person in the reference image.'
     );
   }
 
-  if (preserveBody && value >= 0.55) {
+  if (preserveBody && value >= 0.5 && value < 0.75) {
     directives.push(
       'Maintain the exact physical body proportions, silhouette, and build from the reference image.'
     );
@@ -178,30 +178,43 @@ export function buildPrompt({
   const artStyle = isArtStyle(trimmedBase, styleId);
   const identityWeight = Number.isFinite(likeness) ? likeness : 0.85;
 
-  // Keep the user's creative direction first so the model does not treat the
-  // identity instruction as the whole scene description.
-  const segments = [trimmedBase];
   if (useIdentity) {
+    // When editing an existing reference photo (e.g. FLUX.1 Kontext Pro),
+    // prioritize the user's exact requested instruction as the primary directive.
+    // Avoid appending contradictory camera tags (like 85mm shallow depth of field)
+    // that artificially blur backgrounds or produce edge halos around the hair.
+    const segments = [trimmedBase];
+
     segments.push(
-      identityDirective(likeness, { preserveBody, preservePose, preserveEnvironment })
+      identityDirective(identityWeight, { preserveBody, preservePose, preserveEnvironment })
     );
+
+    if (!profile.shotPattern.test(trimmedBase)) {
+      segments.push(profile.shot);
+    }
+
+    if (artStyle) {
+      segments.push(ART_FINISH);
+    } else {
+      segments.push('natural studio lighting, sharp focus, professional photography');
+    }
+
+    return {
+      prompt: segments.join('. '),
+      negativePrompt: cleanNegativePrompt(negativePrompt),
+      framingMode: profile.key,
+      width: profile.width,
+      height: profile.height,
+      useIdentity: true,
+    };
   }
+
+  // Pure text-to-image synthesis path (no reference image provided)
+  const segments = [trimmedBase];
   if (!profile.shotPattern.test(trimmedBase)) {
     segments.push(profile.shot);
   }
   segments.push(artStyle ? ART_FINISH : photoFinish(profile.key, trimmedBase));
-  // A final anchor matters because some edit models weight the tail of the
-  // prompt most strongly.
-  if (useIdentity && identityWeight >= 0.55) {
-    const anchors = ['The subject must remain the same person as the reference photo.'];
-    if (preservePose) {
-      anchors.push('Keep the exact physical body pose and position.');
-    }
-    if (preserveEnvironment) {
-      anchors.push('Keep the original background environment.');
-    }
-    segments.push(anchors.join(' '));
-  }
 
   return {
     prompt: segments.join(', '),
@@ -209,6 +222,6 @@ export function buildPrompt({
     framingMode: profile.key,
     width: profile.width,
     height: profile.height,
-    useIdentity,
+    useIdentity: false,
   };
 }

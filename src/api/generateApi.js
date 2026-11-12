@@ -504,18 +504,11 @@ export async function synthesizePersona({
       seed: activeSeed,
     });
 
-    let finalUrl = result.url;
-    if (hasImage && likeness >= 0.4) {
-      finalUrl = await compositeFaceLock({
-        originalImageUrl: capturedImage,
-        generatedImageUrl: result.url,
-        framingMode,
-        likeness,
-      });
-    }
-
+    // FLUX.1 Kontext Pro natively refactors attire, background, and lighting while
+    // preserving authentic facial identity. We do not apply canvas post-compositing
+    // here to avoid collar seams and hair smudges.
     return {
-      url: finalUrl,
+      url: result.url,
       identityUsed: Boolean(referenceBlob),
       model: result.model,
       promptUsed: built.prompt,

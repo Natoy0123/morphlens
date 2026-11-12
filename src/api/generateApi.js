@@ -215,6 +215,39 @@ function base64ToBlob(base64, mediaType = 'image/png') {
 const CLASSIC_MAX_AREA = 768 * 768;
 
 /**
+ * Compute diffusion-optimal rendering dimensions that match the native aspect ratio
+ * of the source reference image (multiples of 16/32, total area ~1MP).
+ */
+export function computeAspectDimensions({ sourceWidth, sourceHeight, maxArea = 1024 * 1024 }) {
+  if (!sourceWidth || !sourceHeight) {
+    return { width: 1024, height: 1024 };
+  }
+
+  const ratio = sourceWidth / sourceHeight;
+  let targetWidth;
+  let targetHeight;
+
+  if (Math.abs(ratio - 1) < 0.05) {
+    targetWidth = 1024;
+    targetHeight = 1024;
+  } else if (ratio < 1) {
+    // Portrait (taller than wide, e.g. 480x1080)
+    targetHeight = Math.sqrt(maxArea / ratio);
+    targetWidth = targetHeight * ratio;
+  } else {
+    // Landscape (wider than tall)
+    targetWidth = Math.sqrt(maxArea * ratio);
+    targetHeight = targetWidth / ratio;
+  }
+
+  // Snap to multiples of 16, bounded within stable diffusion boundaries
+  const snappedWidth = Math.max(512, Math.min(1440, Math.round(targetWidth / 16) * 16));
+  const snappedHeight = Math.max(512, Math.min(1440, Math.round(targetHeight / 16) * 16));
+
+  return { width: snappedWidth, height: snappedHeight };
+}
+
+/**
  * The anonymous endpoint caps output area. Scale the requested canvas down
  * instead of letting it silently downscale or reject the request.
  */
@@ -290,7 +323,7 @@ async function prepareReferenceImage(source) {
       code: 'INVALID_IMAGE',
     });
   }
-  return blob;
+  return { blob, width: sourceWidth, height: sourceHeight };
 }
 
 async function requestGenImage({ apiKey, model, body, referenceBlob }) {
@@ -491,7 +524,21 @@ export async function synthesizePersona({
   });
 
   const activeSeed = Number.isInteger(seed) ? seed : Math.floor(Math.random() * 2_000_000_000);
-  const referenceBlob = hasImage ? await prepareReferenceImage(capturedImage) : null;
+  const referenceData = hasImage ? await prepareReferenceImage(capturedImage) : null;
+  const referenceBlob = referenceData?.blob || null;
+
+  let renderWidth = built.width;
+  let renderHeight = built.height;
+
+  // If a reference image is attached, preserve its authentic aspect ratio rather than forcing a square
+  if (referenceData?.width && referenceData?.height) {
+    const matched = computeAspectDimensions({
+      sourceWidth: referenceData.width,
+      sourceHeight: referenceData.height,
+    });
+    renderWidth = matched.width;
+    renderHeight = matched.height;
+  }
 
   if (hasKey) {
     const result = await generateWithKey({
@@ -499,8 +546,8 @@ export async function synthesizePersona({
       prompt: built.prompt,
       negativePrompt: built.negativePrompt,
       referenceBlob,
-      width: built.width,
-      height: built.height,
+      width: renderWidth,
+      height: renderHeight,
       seed: activeSeed,
     });
 
@@ -515,7 +562,7 @@ export async function synthesizePersona({
     };
   }
 
-  const classicSize = classicDimensions(built.width, built.height);
+  const classicSize = classicDimensions(renderWidth, renderHeight);
   const result = await generateClassic({
     prompt: built.prompt,
     negativePrompt: built.negativePrompt,

@@ -120,13 +120,13 @@ function identityDirective(likeness, { preserveBody = true, preservePose = true,
     );
   }
 
-  if (preservePose && value >= 0.5 && value < 0.75) {
+  if (preservePose && value >= 0.5) {
     directives.push(
-      'Maintain the exact physical body position, head angle, posture, and stance of the person in the reference image.'
+      'Maintain the exact physical body position, head angle, gaze direction, posture, and stance of the person in the reference image. Do not rotate or turn the person to face the camera if they are angled or in profile.'
     );
   }
 
-  if (preserveBody && value >= 0.5 && value < 0.75) {
+  if (preserveBody && value >= 0.5) {
     directives.push(
       'Maintain the exact physical body proportions, silhouette, and build from the reference image.'
     );
@@ -134,7 +134,7 @@ function identityDirective(likeness, { preserveBody = true, preservePose = true,
 
   if (preserveEnvironment) {
     directives.push(
-      'Maintain the exact background environment, room surroundings, and scene lighting from the reference image.'
+      'Maintain the exact background environment, room surroundings, wall texture, and authentic scene lighting from the reference image.'
     );
   }
 
@@ -189,12 +189,17 @@ export function buildPrompt({
       identityDirective(identityWeight, { preserveBody, preservePose, preserveEnvironment })
     );
 
+    // In edit mode with an attached photo, do not force "face centered, eye level"
+    // which overrides natural profiles and side-angles.
     if (!profile.shotPattern.test(trimmedBase)) {
-      segments.push(profile.shot);
+      const editShot = profile.shot.replace(/,\s*face centered,\s*eye level/i, '');
+      segments.push(editShot);
     }
 
     if (artStyle) {
       segments.push(ART_FINISH);
+    } else if (preserveEnvironment) {
+      segments.push('authentic scene lighting, sharp focus, natural textures');
     } else {
       segments.push('natural studio lighting, sharp focus, professional photography');
     }

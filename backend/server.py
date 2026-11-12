@@ -80,8 +80,11 @@ def load_pipeline():
 
     try:
         # Load 6.5 GB GGUF Q4 transformer (fits safely in T4 15GB VRAM)
+        # Using ungated unsloth/FLUX.1-schnell transformer config to avoid 401 gated repo errors
         transformer = FluxTransformer2DModel.from_single_file(
             "https://huggingface.co/city96/FLUX.1-schnell-gguf/blob/main/flux1-schnell-Q4_K_S.gguf",
+            config="unsloth/FLUX.1-schnell",
+            subfolder="transformer",
             quantization_config=GGUFQuantizationConfig(compute_dtype=dtype),
             torch_dtype=dtype,
         )

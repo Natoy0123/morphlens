@@ -1,11 +1,12 @@
 """
-MorphLens Self-Hosted FLUX.1 Server
-===================================
-A lightweight FastAPI backend that runs FLUX.1 [schnell] (4-step distilled)
-or SDXL with reference image conditioning, exposed over a public Cloudflare Tunnel.
+MorphLens Self-Hosted FLUX.1 Server (GGUF Q4 + Diffusers)
+=========================================================
+Runs FLUX.1 [schnell] or [dev] quantized with GGUF Q4 (~6.5 GB VRAM)
+on consumer and free-tier cloud GPUs (e.g. Google Colab Tesla T4 15GB).
+Supports both Text-to-Image and Image-to-Image (identity/reference editing).
 
 Requirements:
-    pip install fastapi uvicorn diffusers torch torchvision transformers accelerate pycloudflared pillow pydantic
+    pip install fastapi uvicorn diffusers transformers accelerate sentencepiece protobuf gguf pycloudflared pillow pydantic
 
 Usage:
     python server.py
@@ -28,9 +29,9 @@ from PIL import Image
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s: %(message)s")
 logger = logging.getLogger("morphlens-server")
 
-app = FastAPI(title="MorphLens FLUX.1 Backend", version="1.0.0")
+app = FastAPI(title="MorphLens FLUX.1 GGUF Backend", version="1.1.0")
 
-# Enable CORS for MorphLens Web Studio
+# Enable comprehensive CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,35 +41,46 @@ app.add_middleware(
 )
 
 pipe = None
-# Use unsloth/FLUX.1-schnell (exact ungated public mirror, requires no Hugging Face login or token)
-MODEL_ID = os.environ.get("FLUX_MODEL_ID", "unsloth/FLUX.1-schnell")
+img2img_pipe = None
+MODEL_ID = "FLUX.1-schnell-GGUF-Q4"
 DEVICE = "cuda" if os.environ.get("FORCE_CPU") != "1" else "cpu"
 
 def load_pipeline():
-    global pipe, DEVICE
+    global pipe, img2img_pipe, DEVICE
     import torch
-    from diffusers import FluxPipeline, FluxImg2ImgPipeline
+    from diffusers import FluxPipeline, FluxImg2ImgPipeline, FluxTransformer2DModel, GGUFQuantizationConfig
 
     if not torch.cuda.is_available() and DEVICE != "cpu":
-        logger.warning("CUDA not detected. Falling back to CPU mode (inference will be slower).")
+        logger.warning("CUDA not detected. Falling back to CPU mode.")
         DEVICE = "cpu"
 
-    dtype = torch.bfloat16 if DEVICE == "cuda" else torch.float32
-    logger.info(f"Loading {MODEL_ID} on {DEVICE} ({dtype})...")
+    dtype = torch.float16 if DEVICE == "cuda" else torch.float32
+    logger.info(f"Loading FLUX.1 Schnell GGUF Q4 on {DEVICE} ({dtype})...")
 
     try:
-        # Load Flux Schnell (4-step model)
-        pipe = FluxPipeline.from_pretrained(
-            MODEL_ID,
+        # Load 6.5 GB GGUF Q4 transformer (fits safely in T4 15GB VRAM)
+        transformer = FluxTransformer2DModel.from_single_file(
+            "https://huggingface.co/city96/FLUX.1-schnell-gguf/blob/main/flux1-schnell-Q4_K_S.gguf",
+            quantization_config=GGUFQuantizationConfig(compute_dtype=dtype),
             torch_dtype=dtype,
         )
+
+        pipe = FluxPipeline.from_pretrained(
+            "unsloth/FLUX.1-schnell",
+            transformer=transformer,
+            torch_dtype=dtype,
+        )
+
         if DEVICE == "cuda":
-            # Optimize memory footprint
             pipe.enable_model_cpu_offload()
-        logger.info("FLUX.1 pipeline loaded successfully!")
+
+        # Share pipeline components for zero-copy img2img support
+        img2img_pipe = FluxImg2ImgPipeline(**pipe.components)
+        logger.info("FLUX.1 GGUF Q4 pipelines loaded successfully!")
     except Exception as e:
-        logger.error(f"Error loading FLUX model: {e}")
+        logger.error(f"Error loading FLUX GGUF model: {e}", exc_info=True)
         pipe = None
+        img2img_pipe = None
 
 class GenerateRequest(BaseModel):
     prompt: str
@@ -119,22 +131,43 @@ def generate(req: GenerateRequest):
     active_seed = req.seed if (req.seed is not None and req.seed >= 0) else random.randint(0, 2**32 - 1)
     generator = torch.Generator(device=DEVICE if DEVICE != "cuda" else "cpu").manual_seed(active_seed)
 
-    # Round width and height to multiples of 16
-    width = max(256, min(1536, (req.width // 16) * 16))
-    height = max(256, min(1536, (req.height // 16) * 16))
-    steps = max(1, min(10, req.steps or 4))
+    # Snap dimensions to multiples of 16
+    width = max(256, min(1536, ((req.width or 1024) // 16) * 16))
+    height = max(256, min(1536, ((req.height or 1024) // 16) * 16))
+    steps = max(1, min(12, req.steps or 4))
 
-    logger.info(f"Generating with prompt='{prompt[:60]}...' size={width}x{height} seed={active_seed} steps={steps}")
+    logger.info(f"Generating prompt='{prompt[:60]}...' size={width}x{height} seed={active_seed} steps={steps} has_image={bool(req.image)}")
 
     try:
-        output = pipe(
-            prompt=prompt,
-            width=width,
-            height=height,
-            num_inference_steps=steps,
-            generator=generator,
-            guidance_scale=req.guidance_scale or 0.0,
-        )
+        if req.image and img2img_pipe is not None:
+            # Image-to-image / Subject editing flow
+            init_image = decode_base64_image(req.image)
+            init_image = init_image.resize((width, height), Image.Resampling.LANCZOS)
+            
+            # Map likeness (0.5 - 1.0) to img2img transformation strength (0.50 - 0.75)
+            # High likeness = lower strength (preserves subject face/pose more strongly)
+            likeness_val = max(0.1, min(1.0, req.likeness or 0.85))
+            strength = max(0.40, min(0.85, 1.15 - (likeness_val * 0.6)))
+
+            output = img2img_pipe(
+                prompt=prompt,
+                image=init_image,
+                strength=strength,
+                num_inference_steps=steps,
+                generator=generator,
+                guidance_scale=req.guidance_scale or 0.0,
+            )
+        else:
+            # Text-to-image synthesis
+            output = pipe(
+                prompt=prompt,
+                width=width,
+                height=height,
+                num_inference_steps=steps,
+                generator=generator,
+                guidance_scale=req.guidance_scale or 0.0,
+            )
+
         result_image = output.images[0]
         data_url = encode_pil_to_base64(result_image)
 
@@ -150,26 +183,18 @@ def generate(req: GenerateRequest):
         logger.error(f"Generation error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-def start_cloudflare_tunnel(port: int = 8000):
+if __name__ == "__main__":
+    load_pipeline()
+    port = int(os.environ.get("PORT", 8000))
+
     try:
         from pycloudflared import try_cloudflare
         tunnel_url = try_cloudflare(port=port)
         logger.info("=" * 60)
         logger.info(f"PUBLIC CLOUDFLARE TUNNEL URL: {tunnel_url.tunnel}")
-        logger.info(f"Paste this URL into MorphLens Studio Adjustments settings!")
         logger.info("=" * 60)
-        return tunnel_url.tunnel
     except Exception as e:
-        logger.warning(f"Could not automatically start pycloudflared tunnel: {e}")
-        return None
+        logger.warning(f"Could not initialize Cloudflare tunnel: {e}")
 
-if __name__ == "__main__":
     import uvicorn
-
-    load_pipeline()
-    port = int(os.environ.get("PORT", "8000"))
-
-    # If run in Google Colab or remote VPS, expose Cloudflare tunnel
-    tunnel = start_cloudflare_tunnel(port)
-
     uvicorn.run(app, host="0.0.0.0", port=port)

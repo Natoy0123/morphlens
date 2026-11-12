@@ -547,18 +547,27 @@ async function generateSelfHosted({
     steps: 4,
   };
 
-  const response = await fetchWithTimeout(
-    `${cleanUrl}/generate`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json,image/jpeg,image/png',
+  let response;
+  try {
+    response = await fetchWithTimeout(
+      `${cleanUrl}/generate`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json,image/jpeg,image/png',
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    },
-    150_000
-  );
+      180_000
+    );
+  } catch (err) {
+    if (err instanceof SynthesisError && err.code === 'TIMEOUT') throw err;
+    throw new SynthesisError(
+      'Could not reach self-hosted GPU backend. Ensure your Colab notebook is running.',
+      { code: 'NETWORK_ERROR', cause: err }
+    );
+  }
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => '');

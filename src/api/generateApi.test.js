@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { validateApiKey, computeAspectDimensions, validateCustomEndpoint } from './generateApi.js';
+import { validateApiKey, computeAspectDimensions } from './generateApi.js';
 
 test('computeAspectDimensions preserves tall aspect ratio for portrait uploads', () => {
   // e.g. 480x1080 (ratio 0.444)
@@ -58,32 +58,4 @@ test('accepts a key the account endpoint confirms and trims it', async (t) => {
   assert.equal(await validateApiKey('  sk_valid_12345678  '), true);
   assert.equal(request.url, 'https://gen.pollinations.ai/account/key');
   assert.equal(request.options.headers.Authorization, 'Bearer sk_valid_12345678');
-});
-
-test('validateCustomEndpoint rejects an empty endpoint URL', async () => {
-  await assert.rejects(
-    validateCustomEndpoint('   '),
-    (error) => error.code === 'INVALID_ENDPOINT'
-  );
-});
-
-test('validateCustomEndpoint accepts a healthy endpoint and normalizes URL', async (t) => {
-  const originalFetch = globalThis.fetch;
-  let requestedUrl = null;
-  t.after(() => {
-    globalThis.fetch = originalFetch;
-  });
-
-  globalThis.fetch = async (url) => {
-    requestedUrl = url;
-    return new Response(JSON.stringify({ status: 'ok', model: 'FLUX.1-schnell' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  };
-
-  const res = await validateCustomEndpoint('https://my-tunnel.trycloudflare.com///');
-  assert.equal(res.status, 'ok');
-  assert.equal(res.model, 'FLUX.1-schnell');
-  assert.equal(requestedUrl, 'https://my-tunnel.trycloudflare.com/health');
 });

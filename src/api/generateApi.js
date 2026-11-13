@@ -78,39 +78,6 @@ export async function validateApiKey(apiKey) {
   return true;
 }
 
-/**
- * Check connectivity and readiness of a self-hosted backend.
- */
-export async function validateCustomEndpoint(endpointUrl) {
-  const url = String(endpointUrl || '').trim().replace(/\/+$/, '');
-  if (!url) {
-    throw new SynthesisError('Enter your self-hosted backend URL first.', { code: 'INVALID_ENDPOINT' });
-  }
-
-  try {
-    const response = await fetchWithTimeout(`${url}/health`, {}, 10_000);
-    if (!response.ok) {
-      const rootResp = await fetchWithTimeout(`${url}/`, {}, 10_000);
-      if (!rootResp.ok) {
-        throw new SynthesisError(`Endpoint returned HTTP ${response.status}.`, {
-          code: 'ENDPOINT_ERROR',
-          status: response.status,
-        });
-      }
-      const data = await rootResp.json().catch(() => ({}));
-      return { status: 'ok', model: data?.model || 'Self-Hosted Model' };
-    }
-    const data = await response.json().catch(() => ({}));
-    return { status: 'ok', model: data?.model || 'FLUX.1-schnell' };
-  } catch (err) {
-    if (err instanceof SynthesisError) throw err;
-    throw new SynthesisError(
-      'Could not reach self-hosted backend. Verify your Cloudflare Tunnel or local server is running.',
-      { code: 'ENDPOINT_UNREACHABLE', cause: err }
-    );
-  }
-}
-
 async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -525,81 +492,6 @@ async function generateClassic({ prompt, negativePrompt, width, height, seed, re
   return { url: outputUrl, identityUsed: Boolean(referenceUrl) };
 }
 
-async function generateSelfHosted({
-  endpointUrl,
-  prompt,
-  negativePrompt,
-  width,
-  height,
-  seed,
-  referenceDataUrl,
-  likeness,
-}) {
-  const cleanUrl = String(endpointUrl || '').trim().replace(/\/+$/, '');
-  const payload = {
-    prompt,
-    negative_prompt: negativePrompt || '',
-    image: referenceDataUrl || null,
-    likeness: likeness ?? 0.85,
-    width,
-    height,
-    seed,
-    steps: 4,
-  };
-
-  let response;
-  try {
-    response = await fetchWithTimeout(
-      `${cleanUrl}/generate`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json,image/jpeg,image/png',
-        },
-        body: JSON.stringify(payload),
-      },
-      180_000
-    );
-  } catch (err) {
-    if (err instanceof SynthesisError && err.code === 'TIMEOUT') throw err;
-    throw new SynthesisError(
-      'Could not reach self-hosted GPU backend. Ensure your Colab notebook is running.',
-      { code: 'NETWORK_ERROR', cause: err }
-    );
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    throw new SynthesisError(
-      `Self-hosted backend error (${response.status}): ${errorText || 'Generation failed.'}`,
-      { code: 'SELF_HOSTED_FAILED', status: response.status }
-    );
-  }
-
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    const data = await response.json();
-    if (!data?.image) {
-      throw new SynthesisError('Self-hosted server response did not contain an image.', {
-        code: 'INVALID_RESPONSE',
-      });
-    }
-    return {
-      url: data.image,
-      identityUsed: Boolean(referenceDataUrl),
-      model: data.model || 'FLUX.1-schnell (Self-Hosted)',
-    };
-  }
-
-  const blobUrl = await blobUrlFromResponse(response);
-  return {
-    url: blobUrl,
-    identityUsed: Boolean(referenceDataUrl),
-    model: 'FLUX.1-schnell (Self-Hosted)',
-  };
-}
-
 /**
  * @returns {Promise<{url: string, identityUsed: boolean, model: string, promptUsed: string}>}
  */
@@ -615,8 +507,6 @@ export async function synthesizePersona({
   preserveBody = true,
   preservePose = true,
   preserveEnvironment = false,
-  engineMode = 'pollinations',
-  customEndpoint = '',
 }) {
   const hasKey = Boolean(String(apiKey || '').trim());
   const hasImage = Boolean(capturedImage);
@@ -650,28 +540,6 @@ export async function synthesizePersona({
     renderHeight = matched.height;
   }
 
-  // 1. Self-Hosted Mode via Cloudflare Tunnel or local server
-  if (engineMode === 'self-hosted' && customEndpoint) {
-    const result = await generateSelfHosted({
-      endpointUrl: customEndpoint,
-      prompt: built.prompt,
-      negativePrompt: built.negativePrompt,
-      width: renderWidth,
-      height: renderHeight,
-      seed: activeSeed,
-      referenceDataUrl: capturedImage,
-      likeness,
-    });
-
-    return {
-      url: result.url,
-      identityUsed: result.identityUsed,
-      model: result.model,
-      promptUsed: built.prompt,
-    };
-  }
-
-  // 2. Pollinations with API Key
   if (hasKey) {
     const result = await generateWithKey({
       apiKey: String(apiKey).trim(),
